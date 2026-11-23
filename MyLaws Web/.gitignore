@@ -18,6 +18,7 @@ dist/
 *.key
 *.apk
 *.aab
+*.pdf
 public/frames_raw/
 
 # Local env files
