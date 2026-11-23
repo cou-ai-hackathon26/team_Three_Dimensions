@@ -3,6 +3,7 @@
 > **CoU AI Hackathon 2026**  
 > **Team:** Three Dimensions  
 > **Track:** 06. Accessibility & Social Innovation  
+> **Live Website:** [https://mylaws-ai.vercel.app](https://mylaws-ai.vercel.app)  
 
 ---
 

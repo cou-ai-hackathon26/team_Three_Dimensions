@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 [![Vitest](https://img.shields.io/badge/Tests-96%20Passed-brightgreen?style=flat&logo=vitest)](https://vitest.dev/)
 [![Corpus](https://img.shields.io/badge/Corpus-255%20Provisions%20%7C%2031%20Acts-orange?style=flat)](https://bdlaws.minlaw.gov.bd)
-[![Production](https://img.shields.io/badge/Production-Live%20on%20Vercel-success?style=flat)](https://mylaws-bd.vercel.app)
+[![Production](https://img.shields.io/badge/Production-Live%20on%20Vercel-success?style=flat)](https://mylaws-ai.vercel.app)
 
 ---
 
@@ -226,7 +226,7 @@ Standard PDF engines break Bengali **conjuncts (যুক্তাক্ষর)*
 
 ## 🌐 Production Deployment & Rollback
 
-- **Live Production URL:** [`https://mylaws-bd.vercel.app`](https://mylaws-bd.vercel.app)
+- **Live Production URL:** [`https://mylaws-ai.vercel.app`](https://mylaws-ai.vercel.app)
 - **Deployment Platform:** Vercel (Edge Network + Serverless Functions)
 - **Database:** Cloudflare D1 Edge SQLite (`mylaws-db`)
 
