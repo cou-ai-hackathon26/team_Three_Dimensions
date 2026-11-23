@@ -3,7 +3,6 @@
 > **CoU AI Hackathon 2026**  
 > **Team:** Three Dimensions  
 > **Track:** 06. Accessibility & Social Innovation  
-> **Target Audience:** Citizens of Bangladesh, Hackathon Evaluators, Legal Tech Researchers  
 
 ---
 
