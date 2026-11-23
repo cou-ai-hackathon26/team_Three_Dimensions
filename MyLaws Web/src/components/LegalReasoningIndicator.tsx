@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useApp } from './AppContext';
+import { JusticeGavelAvatar } from './JusticeGavelAvatar';
 import {
   Search,
   BookOpen,
@@ -94,15 +95,8 @@ export function LegalReasoningIndicator() {
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         
-        {/* Animated Scales of Justice Balance Node */}
-        <div className="relative flex items-center justify-center shrink-0">
-          {/* Radar Ring Glow */}
-          <div className="absolute inset-0 rounded-2xl bg-accent-light/20 animate-radar-ring" />
-          
-          <div className="relative h-12 w-12 rounded-2xl bg-gradient-to-br from-[#FAF7F0] to-[#EADBC8] border border-accent-light/60 flex items-center justify-center shadow-inner text-accent-light">
-            <Scale className="h-6 w-6 animate-scale-beam" />
-          </div>
-        </div>
+        {/* Courtroom Justice Gavel ("Order! Order!") Animated Avatar */}
+        <JusticeGavelAvatar size={50} />
 
         {/* Status Content */}
         <div className="flex-1 min-w-0 space-y-1.5">

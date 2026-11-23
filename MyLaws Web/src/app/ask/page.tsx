@@ -545,7 +545,7 @@ function AskContent() {
 
       if (res.status === 429) {
         const errJson = await res.json().catch(() => ({}));
-        const activeLimit = errJson.userQuota?.dailyLimit || quota?.dailyLimit || 10;
+        const activeLimit = errJson.userQuota?.dailyLimit || quota?.dailyLimit || 30;
         const formattedLimit = `${activeLimit}`;
         const quotaError =
           errJson.message ||
@@ -743,7 +743,7 @@ function AskContent() {
   }, [searchParams, chatTurns.length]);
 
   const latestResult = [...chatTurns].reverse().find((t) => t.result)?.result;
-  const dailyLimit = quota?.dailyLimit || 10;
+  const dailyLimit = quota?.dailyLimit || 30;
   const remainingQuestions = quota ? quota.remaining : dailyLimit;
   const formattedRemaining = `${remainingQuestions}`;
   const formattedDailyLimit = `${dailyLimit}`;

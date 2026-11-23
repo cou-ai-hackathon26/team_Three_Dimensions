@@ -129,6 +129,7 @@ html, body {
   border-color: #9A6F32;
   pointer-events: none;
   transition: all 0.2s ease;
+  z-index: 2;
 }
 
 /* Top-left and bottom-left brackets */
@@ -162,6 +163,114 @@ html, body {
   width: 12px;
   height: 12px;
   border-color: #7E5723;
+}
+
+/* Glassy button styling & light sheen sweep for header actions */
+.glassy-action-btn {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 1px 0 rgba(17, 22, 37, 0.05),
+    0 2px 8px -2px rgba(17, 22, 37, 0.06);
+  border: 1px solid rgba(154, 111, 50, 0.15);
+}
+
+.dark .glassy-action-btn {
+  background: rgba(22, 27, 34, 0.55);
+  box-shadow: 
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.4),
+    0 2px 8px -2px rgba(0, 0, 0, 0.4);
+  border-color: rgba(212, 175, 55, 0.22);
+}
+
+.glassy-action-btn:hover {
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.95),
+    0 4px 14px -2px rgba(154, 111, 50, 0.2);
+  border-color: rgba(154, 111, 50, 0.35);
+}
+
+.dark .glassy-action-btn:hover {
+  background: rgba(30, 35, 45, 0.75);
+  box-shadow: 
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.22),
+    0 4px 14px -2px rgba(212, 175, 55, 0.25);
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
+/* Glassy beam sweep animation across the surface */
+.glassy-shimmer-beam {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.glassy-shimmer-beam::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  bottom: -60%;
+  left: -140%;
+  width: 70%;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 20%,
+    rgba(255, 255, 255, 0.12) 32%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(17, 22, 37, 0.14) 54%,
+    rgba(255, 255, 255, 0.45) 58%,
+    transparent 72%,
+    transparent 100%
+  );
+  transform: skewX(-22deg);
+  animation: glassy-sheen-sweep 4.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+.dark .glassy-shimmer-beam::after {
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 20%,
+    rgba(255, 255, 255, 0.06) 32%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(212, 175, 55, 0.22) 54%,
+    rgba(255, 255, 255, 0.35) 58%,
+    transparent 72%,
+    transparent 100%
+  );
+}
+
+.glassy-delay .glassy-shimmer-beam::after {
+  animation-delay: 0.75s;
+}
+
+@keyframes glassy-sheen-sweep {
+  0%, 25% {
+    left: -140%;
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  55% {
+    left: 200%;
+    opacity: 1;
+  }
+  60%, 100% {
+    left: 200%;
+    opacity: 0;
+  }
 }
 
 /* Accessible focus outline */

@@ -85,8 +85,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Check User Daily Quota in Cloudflare D1 (10 queries/day for all users)
-    const DAILY_LIMIT = parseInt(process.env.DAILY_QUERY_LIMIT || '10', 10);
+    // 2. Check User Daily Quota in Cloudflare D1 (30 queries/day for all users)
+    const DAILY_LIMIT = parseInt(process.env.DAILY_QUERY_LIMIT || '30', 10);
     const quotaCheck = await getUserQuotaStatus(verifiedUser.uid, DAILY_LIMIT);
     if (!quotaCheck.canQuery) {
       return NextResponse.json(

@@ -26,7 +26,7 @@ export interface SavedUserQuery {
   createdAt: string;
 }
 
-export const DEFAULT_DAILY_LIMIT = parseInt(process.env.DAILY_QUERY_LIMIT || '10', 10);
+export const DEFAULT_DAILY_LIMIT = parseInt(process.env.DAILY_QUERY_LIMIT || '30', 10);
 
 /**
  * Verifies a client-provided Firebase ID token using Google's Identity Toolkit REST API
@@ -167,9 +167,9 @@ export async function upsertD1User(user: {
 
   const res = await queryD1(sql, [
     user.id,
-    user.email || '',
-    user.displayName || '',
-    user.photoURL || '',
+    user.email || null,
+    user.displayName || null,
+    user.photoURL || null,
     user.provider || 'password',
     dateStr,
     now,

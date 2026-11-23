@@ -23,7 +23,7 @@ export interface QuotaExceededModalProps {
 export function QuotaExceededModal({
   isOpen,
   onClose,
-  dailyLimit = 10,
+  dailyLimit = 30,
 }: QuotaExceededModalProps) {
   const { t } = useApp();
 

@@ -86,11 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } as unknown as User;
         setUser(devUser);
         setQuota({
-          dailyLimit: 10,
+          dailyLimit: 30,
           usedToday: 0,
-          remaining: 10,
+          remaining: 30,
           canQuery: true,
         });
+        await syncUserToD1(devUser);
       } else {
         setUser(null);
         setQuota(null);

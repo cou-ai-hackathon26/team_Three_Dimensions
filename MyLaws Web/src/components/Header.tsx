@@ -101,7 +101,7 @@ export function Header() {
     { href: '/sources', label: t('আইনি উৎস', 'SOURCES'), icon: BookOpen },
   ];
 
-  const dailyLimit = quota?.dailyLimit || 10;
+  const dailyLimit = quota?.dailyLimit || 30;
   const remainingQuota = quota ? quota.remaining : dailyLimit;
   const formattedRemaining = `${remainingQuota}`;
   const formattedDailyLimit = `${dailyLimit}`;
@@ -173,11 +173,14 @@ export function Header() {
           {/* 1. Offline App Download */}
           <Link
             href="/download"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border-light bg-surface-light text-secondary-light hover:border-accent-light hover:text-primary-light transition-all shadow-2xs font-cinzel font-semibold tracking-wider uppercase"
-            title={t('অ্যান্ড্রয়েড অফলাইন অ্যাপ্লিকেশন', 'Download Android App')}
+            className="group flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border-light bg-surface-light text-secondary-light hover:border-accent-light hover:text-primary-light transition-all shadow-2xs font-cinzel font-semibold tracking-wider uppercase"
+            title={t('অ্যান্ড্রয়েড অফলাইন অ্যাপ্লিকেশন (v১.০ বেটা)', 'Download Android App (v1.0 Beta)')}
           >
-            <Smartphone className="h-3.5 w-3.5 text-[#9A6F32]" />
+            <Smartphone className="h-3.5 w-3.5 text-[#9A6F32] group-hover:scale-110 transition-transform" />
             <span>{t('GET APP', 'GET APP')}</span>
+            <span className="ml-1 rounded px-1.5 py-0.5 text-[9px] font-bold tracking-tight bg-accent-light/15 text-accent-light border border-accent-light/30">
+              BETA
+            </span>
           </Link>
 
           {/* 2. Language Switch */}
@@ -196,9 +199,10 @@ export function Header() {
           {/* 3. Signature Bracketed Action: — ASK MYLAWS — */}
           <Link
             href="/ask"
-            className="bracket-btn text-primary-light hover:text-accent-light px-3.5 py-1.5 transition-colors cursor-pointer"
+            className="bracket-btn glassy-action-btn text-primary-light hover:text-accent-light px-3.5 py-1.5 transition-all cursor-pointer"
           >
-            <span className="flex items-center gap-1.5 font-cinzel text-xs font-bold tracking-wider">
+            <span className="glassy-shimmer-beam" aria-hidden="true" />
+            <span className="relative z-10 flex items-center gap-1.5 font-cinzel text-xs font-bold tracking-wider">
               <span>—</span>
               <span>{t('প্রশ্ন করুন', 'ASK MYLAWS')}</span>
               <span>—</span>
@@ -292,9 +296,10 @@ export function Header() {
               ) : (
                 <Link
                   href="/login"
-                  className="bracket-btn text-primary-light hover:text-accent-light"
+                  className="bracket-btn glassy-action-btn glassy-delay text-primary-light hover:text-accent-light px-3.5 py-1.5 transition-all"
                 >
-                  <span className="flex items-center gap-1.5">
+                  <span className="glassy-shimmer-beam" aria-hidden="true" />
+                  <span className="relative z-10 flex items-center gap-1.5">
                     <span>—</span>
                     <span className={lang === 'bn' ? 'font-hind font-bold text-xs' : 'font-cinzel text-xs font-bold'}>
                       {t('লগইন', 'LOGIN')}
@@ -414,15 +419,20 @@ export function Header() {
                 <Link
                   href="/download"
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium tracking-wide transition-all active-press ${
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium tracking-wide transition-all active-press ${
                     pathname === '/download'
                       ? 'bg-accent-light/15 text-accent-light font-bold'
                       : 'text-primary-light hover:bg-bg-light'
                   }`}
                 >
-                  <Smartphone className="h-4 w-4 shrink-0 text-accent-light" />
-                  <span className={lang === 'bn' ? 'font-hind font-semibold text-sm' : 'font-cinzel'}>
-                    {t('অ্যাপ্লিকেশন', 'APPLICATION')}
+                  <div className="flex items-center gap-3">
+                    <Smartphone className="h-4 w-4 shrink-0 text-accent-light" />
+                    <span className={lang === 'bn' ? 'font-hind font-semibold text-sm' : 'font-cinzel'}>
+                      {t('অফলাইন অ্যাপ', 'GET APP')}
+                    </span>
+                  </div>
+                  <span className="rounded px-1.5 py-0.5 text-[9px] font-bold tracking-tight bg-accent-light/15 text-accent-light border border-accent-light/30">
+                    v1.0 BETA
                   </span>
                 </Link>
               </div>

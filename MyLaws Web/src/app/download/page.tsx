@@ -31,6 +31,8 @@ import {
   Copy,
   Check,
   BookOpen,
+  Scale,
+  Zap,
 } from 'lucide-react';
 
 export default function ApplicationPage() {
@@ -163,81 +165,146 @@ export default function ApplicationPage() {
       <main className="flex-1 py-10 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full space-y-16 sm:space-y-20">
         
         {/* ========================================================================= */}
-        {/* SECTION 1: ELEGANT CENTERED HERO (NO PREVIEW MOCKUP, NO TOP STATUS TAG)   */}
+        {/* SECTION 1: CENTERPIECE BETA APK DOWNLOAD & MOBILE SHOWCASE HERO           */}
         {/* ========================================================================= */}
-        <section aria-labelledby="hero-heading" className="relative text-center max-w-4xl mx-auto space-y-6 pt-2 sm:pt-4">
+        <section aria-labelledby="hero-heading" className="relative max-w-3xl mx-auto space-y-8 pt-4 sm:pt-6 text-center">
           
-          {/* Main Headline */}
-          <h1
-            id="hero-heading"
-            className="font-anek font-extrabold text-3xl sm:text-5xl lg:text-6xl text-primary-light tracking-tight leading-[1.18]"
-          >
-            {lang === 'bn' ? content.meta.headlineBn : content.meta.headlineEn}
-          </h1>
-
-          {/* Description */}
-          <p className="font-hind text-base sm:text-lg text-secondary-light leading-relaxed max-w-2xl mx-auto">
-            {lang === 'bn' ? content.meta.descriptionBn : content.meta.descriptionEn}
-          </p>
-
-          {/* Actions */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
-            <Link
-              href="/ask"
-              className="bracket-btn inline-flex items-center justify-center gap-2.5 px-7 py-3.5 text-xs sm:text-sm font-bold tracking-wider text-center"
+          {/* Main Headline & Intro (Clean, confident, no small title above) */}
+          <div className="space-y-4 max-w-2xl mx-auto">
+            <h1
+              id="hero-heading"
+              className="font-anek font-extrabold text-3xl sm:text-5xl lg:text-6xl text-primary-light tracking-tight leading-[1.16]"
             >
-              <Sparkles className="h-4 w-4 text-accent-light" />
-              <span>
-                {lang === 'bn'
-                  ? content.meta.primaryCtaBn
-                  : content.meta.primaryCtaEn}
-              </span>
-              <ArrowRight className="h-4 w-4 ml-1" />
-            </Link>
+              {lang === 'bn' 
+                ? 'মাই লজ মোবাইল — পকেটে শতভাগ অফলাইন আইনি এআই'
+                : 'MyLaws Mobile — 100% Offline Legal AI In Your Pocket'}
+            </h1>
 
-            <a
-              href="#progress"
-              onClick={scrollToProgress}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-border-light/90 bg-surface-light hover:bg-surface-cardLight text-secondary-light hover:text-primary-light text-xs sm:text-sm font-semibold transition-all shadow-sm"
-            >
-              <span>
-                {lang === 'bn'
-                  ? content.meta.secondaryCtaBn
-                  : content.meta.secondaryCtaEn}
-              </span>
-              <ChevronDown className="h-4 w-4" />
-            </a>
+            <p className="font-hind text-base sm:text-lg text-secondary-light leading-relaxed">
+              {lang === 'bn'
+                ? 'ইন্টারনেট বা ডেটা ছাড়াই ১,০৪৬টি অফিসিয়াল ধারা ও ১০টি প্রমিত আইনি খসড়া সরাসরি আপনার অ্যান্ড্রয়েড ফোনে।'
+                : 'Instant statutory answers, 1,046 verified provisions, and 10 standardized legal draft templates — zero internet required.'}
+            </p>
           </div>
 
-          {/* 3 Fast Value Highlights */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-4 max-w-3xl mx-auto text-left">
-            <div className="p-4 rounded-2xl bg-surface-light border border-border-light/80 text-xs font-hind space-y-1 shadow-xs hover:border-accent-light/50 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-300">
-              <span className="font-bold text-primary-light text-sm block">
-                {t('১০০% অফলাইন প্রস্তুত', '100% Offline')}
+          {/* ========================================================================= */}
+          {/* CENTERPIECE BETA DOWNLOAD CARD (Clean, refined luxury legal vibe)         */}
+          {/* ========================================================================= */}
+          <div className="relative rounded-3xl border border-accent-light/35 bg-surface-light p-6 sm:p-9 shadow-lg backdrop-blur-md space-y-6 transition-all duration-300">
+            {/* Subtle background warm ambient glow */}
+            <div className="absolute -top-20 -right-20 w-44 h-44 bg-accent-light/8 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-20 -left-20 w-44 h-44 bg-accent-gold/8 rounded-full blur-3xl pointer-events-none" />
+
+            {/* App Identity Row */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 relative z-10">
+              <div className="h-11 w-11 rounded-2xl bg-accent-light/10 border border-accent-light/25 flex items-center justify-center text-accent-light shadow-2xs shrink-0">
+                <Smartphone className="h-5 w-5" />
+              </div>
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                <h2 className="font-anek text-xl sm:text-2xl font-bold text-primary-light">
+                  {t('মাই লজ অ্যান্ড্রয়েড অ্যাপ', 'MyLaws for Android')}
+                </h2>
+                <span className="rounded-full bg-accent-light/15 border border-accent-light/30 px-2.5 py-0.5 text-[11px] font-bold font-mono text-accent-light uppercase">
+                  v1.0 Beta
+                </span>
+              </div>
+            </div>
+
+            {/* Crisp 1-sentence transparency note */}
+            <p className="font-hind text-xs sm:text-sm text-secondary-light leading-relaxed max-w-lg mx-auto relative z-10">
+              {lang === 'bn'
+                ? 'অ্যাপটির পূর্ণাঙ্গ রিলিজের উন্নয়ন চলমান। তবে প্রাথমিক এই বেটা সংস্করণটি ইতিমধ্যেই সম্পূর্ণ রানএবল এবং অফলাইনে ব্যবহারের জন্য প্রস্তুত।'
+                : 'Full production release is in active development. This early v1.0 beta is completely runnable and ready for offline testing today.'}
+            </p>
+
+            {/* Main Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-1 relative z-10">
+              <a
+                href="/downloads/mylaws-v1-preview.apk"
+                download="mylaws-v1-beta.apk"
+                className="glassy-action-btn bracket-btn group inline-flex items-center justify-center gap-2.5 px-8 py-3.5 sm:py-4 rounded-xl text-xs sm:text-sm font-bold tracking-wider text-center shadow-lg hover:shadow-accent-light/20 transition-all cursor-pointer whitespace-nowrap w-full sm:w-auto"
+                title={t('অ্যান্ড্রয়েড এপিকে ডাউনলোড করুন (~৯.৮ MB)', 'Download Android APK (~9.8 MB)')}
+              >
+                <Download className="h-4 sm:h-5 w-4 sm:w-5 text-accent-light group-hover:translate-y-0.5 transition-transform shrink-0" />
+                <span>
+                  {lang === 'bn'
+                    ? 'অ্যান্ড্রয়েড এপিকে ডাউনলোড করুন'
+                    : 'DOWNLOAD ANDROID APK'}
+                </span>
+                <span className="text-[11px] font-mono opacity-80 border-l border-white/20 pl-2 ml-1 shrink-0 hidden sm:inline">
+                  ~9.8 MB
+                </span>
+              </a>
+
+              <Link
+                href="/ask"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 sm:py-4 rounded-xl border border-border-light bg-surface-cardLight hover:bg-bg-light hover:border-accent-light text-secondary-light hover:text-primary-light text-xs sm:text-sm font-semibold transition-all shadow-2xs w-full sm:w-auto"
+              >
+                <span>{t('ওয়েব সহকারী চালু করুন', 'Try Web Assistant')}</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            {/* Metadata Fine-Print */}
+            <p className="text-[11px] text-secondary-light/80 font-hind relative z-10">
+              {t(
+                'সরাসরি .apk ইনস্টল · অ্যান্ড্রয়েড ৮.০+ · কোনো অ্যাকাউন্ট বা প্লে-স্টোর লগইন আবশ্যক নয় · ১০০% নিরাপদ ও ফ্রি',
+                'Direct .apk binary · Android 8.0+ · No Play Store login required · 100% Free & Signed'
+              )}
+            </p>
+
+            {/* Clean, Refined Inline Feature Pills (No heavy boxed paragraphs) */}
+            <div className="pt-2 border-t border-border-light/60 flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs text-secondary-light font-hind relative z-10">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-cardLight border border-border-light/80">
+                <Zap className="h-3.5 w-3.5 text-accent-light shrink-0" />
+                <span className="font-medium text-primary-light">{t('১০০% অফলাইন এআই', '100% Offline AI')}</span>
               </span>
-              <span className="text-secondary-light leading-relaxed">
-                {t('ইন্টারনেট সংযোগ ছাড়াই ১,০৪৬টি ধারার সমাধান', '1,046 verified statutory provisions on-device')}
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-cardLight border border-border-light/80">
+                <Cpu className="h-3.5 w-3.5 text-accent-light shrink-0" />
+                <span className="font-medium text-primary-light">{t('১ ও ২ জিবি র‍্যামে মসৃণ', 'Ultra-Low RAM Ready')}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-cardLight border border-border-light/80">
+                <BookOpen className="h-3.5 w-3.5 text-accent-light shrink-0" />
+                <span className="font-medium text-primary-light">{t('৪৯টি আইন ও ১,০৪৬ ধারা', '49 Acts & 1,046 Sections')}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-cardLight border border-border-light/80">
+                <ShieldCheck className="h-3.5 w-3.5 text-accent-light shrink-0" />
+                <span className="font-medium text-primary-light">{t('শূন্য ক্লাউড ট্র্যাকিং', 'Zero Telemetry')}</span>
               </span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-surface-light border border-border-light/80 text-xs font-hind space-y-1 shadow-xs hover:border-accent-light/50 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-300">
-              <span className="font-bold text-primary-light text-sm block">
-                {t('যে কোনো কম র‍্যামের ফোনে মসৃণ', 'Any Low-RAM Phone')}
-              </span>
-              <span className="text-secondary-light leading-relaxed">
-                {t('১ জিবি বা ২ জিবি সাধারণ বাজেট ফোনেও দ্রুত চলে', 'Runs smoothly on budget 1 GB / 2 GB RAM phones')}
-              </span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-surface-light border border-border-light/80 text-xs font-hind space-y-1 shadow-xs hover:border-accent-light/50 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-300">
-              <span className="font-bold text-accent-light text-sm block">
-                {t('ইতিমধ্যেই ৪৫% কাজ সম্পন্ন', 'Already 45% Completed')}
-              </span>
-              <span className="text-secondary-light leading-relaxed">
-                {t('মূল অফলাইন ইনডেক্স সম্পন্ন, দ্রুত রিলিজের পথে', 'Core offline index complete, releasing soon')}
-              </span>
-            </div>
           </div>
+
+          {/* Quick Install Helper (Collapsible & Unobtrusive) */}
+          <details className="group max-w-2xl mx-auto rounded-2xl border border-border-light/80 bg-surface-light p-4 transition-all open:bg-surface-cardLight text-left shadow-2xs">
+            <summary className="flex items-center justify-between cursor-pointer list-none text-xs font-semibold text-secondary-light hover:text-primary-light select-none">
+              <span className="flex items-center gap-2">
+                <HelpCircle className="h-4 w-4 text-accent-light" />
+                <span>{t('কীভাবে এপিকে ইনস্টল করবেন? (সহজ ৩ ধাপ)', 'How to install the APK? (3 simple steps)')}</span>
+              </span>
+              <ChevronDown className="h-4 w-4 text-secondary-light group-open:rotate-180 transition-transform shrink-0" />
+            </summary>
+            <div className="pt-3 mt-3 border-t border-border-light/50 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-secondary-light font-hind">
+              <div className="space-y-1">
+                <span className="font-bold text-primary-light block">
+                  {t('১. ডাউনলোড', '1. Download')}
+                </span>
+                <p>{t('উপরের বাটনে চাপলে ~৯.৮ MB ফাইলটি সরাসরি ডাউনলোড হবে।', 'Tap download above (~9.8 MB file).')}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="font-bold text-primary-light block">
+                  {t('২. ফাইল খুলুন', '2. Open File')}
+                </span>
+                <p>{t('নোটিফিকেশন বার বা Downloads ফোল্ডার থেকে ফাইলে চাপুন।', 'Open APK from notification or Downloads.')}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="font-bold text-primary-light block">
+                  {t('৩. ইন্সটল ও রান', '3. Install & Launch')}
+                </span>
+                <p>{t('ব্রাউজারের "Allow from this source" অন করে Install চাপুন।', 'Allow install if prompted, then launch offline!')}</p>
+              </div>
+            </div>
+          </details>
 
         </section>
 
