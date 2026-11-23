@@ -1,0 +1,88 @@
+# ==============================================================================
+# MyLaws — CoU AI Hackathon 2026 Root Gitignore
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Milestone Isolation: Flutter Mobile Application
+# Excluded from initial website-only publication; to be integrated in future milestone
+# ------------------------------------------------------------------------------
+MyLaws Flutter/
+*.apk
+*.aab
+
+# ------------------------------------------------------------------------------
+# 2. Secrets, Credentials & Local Environment Files
+# Never commit credentials, tokens, or environment-specific files
+# ------------------------------------------------------------------------------
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+service-account*.json
+credentials*.json
+
+# ------------------------------------------------------------------------------
+# 3. Web & Node.js Artifacts (Next.js, Vercel, npm)
+# ------------------------------------------------------------------------------
+node_modules/
+.next/
+.vercel/
+out/
+build/
+dist/
+coverage/
+.npm
+.eslintcache
+*.tsbuildinfo
+next-env.d.ts
+
+# ------------------------------------------------------------------------------
+# 4. Flutter, Dart & Tooling Artifacts
+# ------------------------------------------------------------------------------
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+*.gguf
+*.tmp
+.wrangler/
+
+# ------------------------------------------------------------------------------
+# 5. IDEs, Editors & Operating System Files
+# ------------------------------------------------------------------------------
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ------------------------------------------------------------------------------
+# 6. Temporary Scrapes, Backups & Scratch Files
+# ------------------------------------------------------------------------------
+backups/
+scratch/
+scripts/*.html
+*.zip
+scripts/batch2_*.json
+src/data/legal.legacy.bak.ts
+public/frames_raw/
