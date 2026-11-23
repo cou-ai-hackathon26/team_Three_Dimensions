@@ -1,0 +1,1965 @@
+'use client';
+
+import React, { useState, useEffect, useRef, Suspense } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useApp } from '@/components/AppContext';
+import { useAuth } from '@/components/AuthContext';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
+import { Checklist } from '@/components/Checklist';
+import { SourceDrawer, findProvision } from '@/components/SourceDrawer';
+import { OfficeModal } from '@/components/OfficeModal';
+import { QuotaExceededModal } from '@/components/QuotaExceededModal';
+import type {
+  AnswerRequest,
+  AnswerResult,
+  AnswerStatus,
+  FactValue,
+  ClarificationQuestion,
+  ChatHistoryMessage,
+} from '@/types/contracts';
+import type { SavedUserQuery } from '@/lib/userDb';
+import { detectInputLanguage, toEnglishNum } from '@/lib/followup';
+import { createLegalWorkflow } from '@/lib/workflow';
+import { detectDraftType, DRAFT_CATALOG } from '@/lib/drafts';
+import { provisions } from '@/data/legal';
+import { FormattedMessageText } from '@/components/FormattedMessageText';
+import { TypewriterText } from '@/components/TypewriterText';
+import { LegalReasoningIndicator } from '@/components/LegalReasoningIndicator';
+import {
+  saveConversation,
+  findStoredConversation,
+  getActiveConversation,
+  setActiveConversationId,
+  clearActiveConversationSession,
+} from '@/lib/conversations';
+import {
+  Send,
+  Loader2,
+  AlertCircle,
+  HelpCircle,
+  Shield,
+  Sparkles,
+  Info,
+  ArrowRight,
+  BookOpen,
+  ListOrdered,
+  Cpu,
+  BookmarkCheck,
+  FileText,
+  Languages,
+  History,
+  X,
+  Clock,
+  User,
+  MessageSquare,
+  CornerDownRight,
+  CheckCircle2,
+  ArrowUp,
+  ChevronDown,
+  Layers,
+  Plus,
+  Scale,
+  Phone,
+  MapPin,
+  UserCheck,
+  Copy,
+  Check,
+} from 'lucide-react';
+
+function getSourceLabel(sid: string, currentLang: 'en' | 'bn'): string {
+  const prov = findProvision(sid);
+  if (prov) {
+    const actName = currentLang === 'bn' ? prov.act.bn : prov.act.en;
+    const shortAct = actName.split(',')[0].split('(')[0].trim();
+    const sec = prov.section ? `(${prov.section})` : '';
+    return `${shortAct} ${sec}`.trim();
+  }
+  return sid;
+}
+
+export interface ChatTurn {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  result?: AnswerResult;
+  error?: string;
+}
+
+function AskContent() {
+  const { lang, setLang, t } = useApp();
+  const { user, quota, setQuota, openAuthModal, getIdToken } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Chat message stream
+  const [chatTurns, setChatTurns] = useState<ChatTurn[]>([]);
+  const [input, setInput] = useState('');
+  const [status, setStatus] = useState<AnswerStatus>('ready');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [selectedOfficeId, setSelectedOfficeId] = useState<string | null>(null);
+  const [streamingTurnId, setStreamingTurnId] = useState<string | null>(null);
+  const [streamingStage, setStreamingStage] = useState<'understanding' | 'meaning' | 'done'>('done');
+
+  // History state
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyItems, setHistoryItems] = useState<SavedUserQuery[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [quotaModalOpen, setQuotaModalOpen] = useState(false);
+
+  // Clarification answers keyed by fieldId
+  const [clarificationAnswers, setClarificationAnswers] = useState<Record<string, string>>({});
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [copiedTurnId, setCopiedTurnId] = useState<string | null>(null);
+  const [translatedTurns, setTranslatedTurns] = useState<
+    Record<
+      string,
+      {
+        isTranslated: boolean;
+        isLoading: boolean;
+        targetLang: 'bn' | 'en';
+        translatedMeaning?: string;
+        translatedWhatToDoNext?: string;
+        translatedUnderstanding?: string;
+        translatedDirectAnswer?: string;
+      }
+    >
+  >({});
+
+  const handleToggleTranslate = async (turnId: string, result: AnswerResult) => {
+    const current = translatedTurns[turnId];
+    if (current?.isTranslated) {
+      setTranslatedTurns((prev) => ({
+        ...prev,
+        [turnId]: { ...prev[turnId], isTranslated: false },
+      }));
+      return;
+    }
+
+    if (current?.translatedMeaning || current?.translatedDirectAnswer) {
+      setTranslatedTurns((prev) => ({
+        ...prev,
+        [turnId]: { ...prev[turnId], isTranslated: true },
+      }));
+      return;
+    }
+
+    const sampleText =
+      result.followUpResponse?.directAnswer ||
+      result.plainLanguageExplanation?.meaning ||
+      result.problemSummary?.understanding ||
+      '';
+    const hasBengali = /[\u0980-\u09FF]/.test(sampleText);
+    const targetLang = hasBengali ? 'en' : 'bn';
+
+    setTranslatedTurns((prev) => ({
+      ...prev,
+      [turnId]: { isTranslated: false, isLoading: true, targetLang },
+    }));
+
+    try {
+      const payloads: Array<{ key: string; text: string }> = [];
+      if (result.plainLanguageExplanation?.meaning) {
+        payloads.push({ key: 'meaning', text: result.plainLanguageExplanation.meaning });
+      }
+      if (result.plainLanguageExplanation?.whatToDoNext) {
+        payloads.push({ key: 'whatToDoNext', text: result.plainLanguageExplanation.whatToDoNext });
+      }
+      if (result.problemSummary?.understanding) {
+        payloads.push({ key: 'understanding', text: result.problemSummary.understanding });
+      }
+      if (result.followUpResponse?.directAnswer) {
+        payloads.push({ key: 'directAnswer', text: result.followUpResponse.directAnswer });
+      }
+
+      const translatedResults = await Promise.all(
+        payloads.map(async (p) => {
+          const res = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: p.text, targetLang }),
+          });
+          const data = await res.json();
+          return { key: p.key, text: data.translatedText || p.text };
+        })
+      );
+
+      const resultMap: Record<string, string> = {};
+      translatedResults.forEach((r) => {
+        resultMap[r.key] = r.text;
+      });
+
+      setTranslatedTurns((prev) => ({
+        ...prev,
+        [turnId]: {
+          isTranslated: true,
+          isLoading: false,
+          targetLang,
+          translatedMeaning: resultMap.meaning,
+          translatedWhatToDoNext: resultMap.whatToDoNext,
+          translatedUnderstanding: resultMap.understanding,
+          translatedDirectAnswer: resultMap.directAnswer,
+        },
+      }));
+    } catch (err) {
+      console.error('Translation error:', err);
+      setTranslatedTurns((prev) => ({
+        ...prev,
+        [turnId]: { isTranslated: false, isLoading: false, targetLang },
+      }));
+    }
+  };
+
+  const handleCopyTurn = async (turnId: string, content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedTurnId(turnId);
+      setTimeout(() => setCopiedTurnId(null), 2000);
+    } catch {}
+  };
+
+  const topInputRef = useRef<HTMLTextAreaElement>(null);
+  const bottomInputRef = useRef<HTMLTextAreaElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const activeRequestIdRef = useRef<string | null>(null);
+
+  // Auto-resize textarea helper
+  const handleTextareaInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+  };
+
+  // Monitor scroll for the floating "scroll to bottom" button (Claude Style)
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const clientHeight = window.innerHeight;
+      const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+      setShowScrollBottom(distanceFromBottom > 180 && chatTurns.length > 0);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [chatTurns.length]);
+
+  // Visual preview mode for layout inspection (?demo=1)
+  useEffect(() => {
+    if (searchParams.get('demo') === '1' && chatTurns.length === 0) {
+      setChatTurns([
+        {
+          id: 'turn-demo-1',
+          role: 'user',
+          content: 'I paid in advance for online goods but the seller refused delivery or refund. How do I file a consumer complaint for compensation?',
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+      setStatus('finding_sources');
+    } else if (searchParams.get('demo') === 'complete' && chatTurns.length === 0) {
+      const demoQuery =
+        lang === 'bn'
+          ? 'আমার মোবাইল চুরি হয়েছে, এখন আমার কী করা উচিত?'
+          : 'someone stolen my mobile, so what should i do now?';
+      const demoResult = createLegalWorkflow({
+        requestId: 'demo-complete',
+        originalMessage: demoQuery,
+        language: lang,
+        facts: [],
+      });
+      setChatTurns([
+        {
+          id: 'turn-demo-user',
+          role: 'user',
+          content: demoQuery,
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: 'turn-demo-assistant',
+          role: 'assistant',
+          content: '',
+          timestamp: new Date().toISOString(),
+          result: demoResult,
+        },
+      ]);
+      setStatus('ready');
+    }
+  }, [searchParams, chatTurns.length, lang]);
+
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Dynamic time-of-day greeting (Claude Style)
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    const rawName = user?.displayName || '';
+    const firstName = rawName.split(' ')[0] || (user?.email ? user.email.split('@')[0] : '');
+
+    if (lang === 'bn') {
+      if (hour >= 5 && hour < 12) return `শুভ সকাল${firstName ? ', ' + firstName : ''}`;
+      if (hour >= 12 && hour < 17) return `শুভ দুপুর${firstName ? ', ' + firstName : ''}`;
+      if (hour >= 17 && hour < 22) return `শুভ সন্ধ্যা${firstName ? ', ' + firstName : ''}`;
+      return `স্বাগতম${firstName ? ', ' + firstName : ''}`;
+    } else {
+      if (hour >= 5 && hour < 12) return `Good morning${firstName ? ', ' + firstName : ''}`;
+      if (hour >= 12 && hour < 17) return `Good afternoon${firstName ? ', ' + firstName : ''}`;
+      if (hour >= 17 && hour < 22) return `Good evening${firstName ? ', ' + firstName : ''}`;
+      return `Welcome${firstName ? ', ' + firstName : ''}`;
+    }
+  };
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+
+  // Smooth scroll to bottom whenever a new turn is added or status changes
+  useEffect(() => {
+    if (chatTurns.length > 0) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatTurns, status]);
+
+  // Load user query history from Cloudflare D1
+  const fetchHistory = async () => {
+    if (!user) {
+      openAuthModal('login', t('পূর্ববর্তী প্রশ্ন দেখতে সাইন ইন করুন।', 'Please sign in to view your question history.'));
+      return;
+    }
+    setHistoryLoading(true);
+    setHistoryOpen(true);
+    try {
+      const token = await getIdToken();
+      if (!token) return;
+      const res = await fetch('/api/user/history', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setHistoryItems(data.history || []);
+      }
+    } catch (err) {
+      console.warn('Failed to load history:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const exampleChips = [
+    {
+      label: t('বকেয়া বেতন ও শ্রম অধিকার', 'Unpaid Wages & Labour'),
+      query: t(
+        'আমার মালিক গত দুই মাসের বকেয়া বেতন পরিশোধ করছে না। আমি কীভাবে শ্রম আদালতের মাধ্যমে প্রতিকার পেতে পারি?',
+        'My employer has not paid my wages for the last two months. How can I seek relief under the Bangladesh Labour Act?'
+      ),
+    },
+    {
+      label: t('জমি দখল ও জাল দলিল', 'Land Grabbing & Fraud'),
+      query: t(
+        'জাল দলিল তৈরি করে আমাদের পৈতৃক জমি দখলের চেষ্টা করা হচ্ছে। ভূমি অপরাধ প্রতিরোধ আইন ২০২৩ অনুযায়ী কীভাবে প্রতিকার পাব?',
+        'Someone created a forged deed to unlawfully occupy our land. How do I seek remedies under the Land Crime Prevention and Redress Act 2023?'
+      ),
+    },
+    {
+      label: t('ভোক্তা অধিকার ও প্রতারণা', 'Consumer Rights & Fraud'),
+      query: t(
+        'অনলাইন শপে অগ্রিম মূল্য পরিশোধের পরও পণ্য দেয়নি। ভোক্তা অধিকার সংরক্ষণ অধিদপ্তরে কীভাবে অভিযোগ ও ক্ষতিপূরণ দাবি করব?',
+        'I paid in advance for online goods but the seller refused delivery or refund. How do I file a consumer complaint for compensation?'
+      ),
+    },
+    {
+      label: t('হুমকি ও নিরাপত্তা জিডি', 'Threats & Police GD'),
+      query: t(
+        'অপরিচিত নম্বর থেকে আমাকে ফোনে প্রাণনাশের হুমকি দেওয়া হচ্ছে। থানায় কীভাবে নিরাপত্তা সাধারণ ডায়েরি (GD) করব?',
+        'I am receiving death threats from unknown phone numbers. How do I file a protective General Diary (GD) with the police station?'
+      ),
+    },
+    {
+      label: t('সাইবার হয়রানি ও ব্ল্যাকমেইল', 'Cyber Harassment'),
+      query: t(
+        'আমার ছবি ব্যবহার করে ফেসবুকে ভুয়া আইডি খুলে ব্ল্যাকমেইল ও মানহানি করা হচ্ছে। সাইবার নিরাপত্তা আইনে কী আইনি পদক্ষেপ নেওয়া যায়?',
+        'Someone created a fake profile with my photos and is blackmailing me. What legal steps can I take under cyber and pornography laws?'
+      ),
+    },
+    {
+      label: t('পারিবারিক ভরণপোষণ ও সুরক্ষা', 'Family Maintenance & Protection'),
+      query: t(
+        'পারিবারিক সহিংসতা থেকে সুরক্ষা এবং পারিবারিক আদালত আইন ২০২৩ অনুযায়ী স্ত্রী ও সন্তানের ভরণপোষণ পাওয়ার নিয়ম কী?',
+        'How can a spouse obtain protection from domestic violence and claim maintenance under the Family Courts Act 2023?'
+      ),
+    },
+    {
+      label: t('বিনামূল্যে সরকারি আইনি সহায়তা', 'Free Government Legal Aid'),
+      query: t(
+        'অসচ্ছল নাগরিক হিসেবে আদালতে বিনামূল্যে সরকারি আইনজীবী ও আইনি সহায়তা (লিগ্যাল এইড ১৬৬৯৯) পাওয়ার উপায় কী?',
+        'How can an underprivileged citizen apply for free government legal aid and representation through the national 16699 helpline?'
+      ),
+    },
+  ];
+
+  const handleClearCase = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setChatTurns([]);
+    setInput('');
+    setStatus('ready');
+    setErrorMsg(null);
+    setClarificationAnswers({});
+    setHistoryOpen(false);
+    clearActiveConversationSession();
+    try {
+      sessionStorage.removeItem('mylaws_pending_draft');
+    } catch {}
+    if (topInputRef.current) {
+      topInputRef.current.style.height = 'auto';
+      topInputRef.current.focus();
+    }
+    if (bottomInputRef.current) {
+      bottomInputRef.current.style.height = 'auto';
+    }
+  };
+
+  const handleAsk = async (
+    customMessage?: string,
+    additionalFacts: FactValue[] = [],
+    overrideLang?: 'bn' | 'en'
+  ) => {
+    const questionToAsk = customMessage || input;
+    if (!questionToAsk.trim()) return;
+
+    // Check user authentication first
+    const token = await getIdToken();
+    if (!token) {
+      router.push(`/login?redirect=/ask&prompt=${encodeURIComponent(questionToAsk.trim())}`);
+      return;
+    }
+
+    // Check if user has already exceeded their daily limit
+    if (quota && quota.remaining <= 0) {
+      setQuotaModalOpen(true);
+      return;
+    }
+
+    // Detect query language intelligently (English, Bengali, or Banglish)
+    const detectedLang = detectInputLanguage(questionToAsk, lang);
+    const targetLang = overrideLang || detectedLang;
+
+    // If query language changed, sync the app language
+    if (detectedLang !== lang && !overrideLang) {
+      setLang(detectedLang);
+    }
+
+    // Prevent duplicate rapid submissions if currently loading
+    if (status === 'submitted' || status === 'finding_sources') {
+      return;
+    }
+
+    // Cancel any inflight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    const currentRequestId = crypto.randomUUID();
+    activeRequestIdRef.current = currentRequestId;
+
+    // Immediately append user turn to chat stream
+    const userTurn: ChatTurn = {
+      id: `user-${currentRequestId}`,
+      role: 'user',
+      content: questionToAsk.trim(),
+      timestamp: new Date().toISOString(),
+    };
+
+    setChatTurns((prev) => [...prev, userTurn]);
+    setInput('');
+    if (topInputRef.current) topInputRef.current.style.height = 'auto';
+    if (bottomInputRef.current) bottomInputRef.current.style.height = 'auto';
+    setStatus('submitted');
+    setErrorMsg(null);
+
+    try {
+      // Gather previous conversation history
+      const historyPayload: ChatHistoryMessage[] = chatTurns.map((turn) => ({
+        role: turn.role,
+        content: turn.content,
+      }));
+
+      // Merge accumulated facts from all previous turns
+      const mergedFactsMap = new Map<string, FactValue>();
+      chatTurns.forEach((turn) => {
+        turn.result?.userFacts?.forEach((f) => mergedFactsMap.set(f.fieldId, f));
+      });
+      additionalFacts.forEach((f) => mergedFactsMap.set(f.fieldId, f));
+
+      const payloadFacts = Array.from(mergedFactsMap.values());
+
+      const payload: Partial<AnswerRequest> = {
+        requestId: currentRequestId,
+        originalMessage: questionToAsk.trim(),
+        language: targetLang,
+        facts: payloadFacts,
+        conversationHistory: historyPayload,
+      };
+
+      const res = await fetch('/api/answer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+        signal: abortController.signal,
+      });
+
+      // Ignore stale responses if another request was triggered
+      if (activeRequestIdRef.current !== currentRequestId) {
+        return;
+      }
+
+      if (res.status === 401) {
+        openAuthModal(
+          'login',
+          t(
+            'আপনার লগইন সেশনের মেয়াদ উত্তীর্ণ হয়েছে। দয়া করে আবার সাইন ইন করুন।',
+            'Your session has expired. Please sign in again.'
+          )
+        );
+        setStatus('ready');
+        return;
+      }
+
+      if (res.status === 429) {
+        const errJson = await res.json().catch(() => ({}));
+        const activeLimit = errJson.userQuota?.dailyLimit || quota?.dailyLimit || 10;
+        const formattedLimit = `${activeLimit}`;
+        const quotaError =
+          errJson.message ||
+          t(
+            `আজকের দৈনিক প্রশ্ন কোটা (${formattedLimit}টি) শেষ হয়েছে। দয়া করে আগামীকাল আবার চেষ্টা করুন।`,
+            `Daily query limit of ${formattedLimit} reached. Please check back tomorrow.`
+          );
+        setErrorMsg(quotaError);
+        if (errJson.userQuota) {
+          setQuota(errJson.userQuota);
+        } else {
+          setQuota({
+            dailyLimit: activeLimit,
+            usedToday: activeLimit,
+            remaining: 0,
+            canQuery: false,
+          });
+        }
+
+        // Open the dedicated Quota Exceeded Modal
+        setQuotaModalOpen(true);
+
+        const assistantErrorTurn: ChatTurn = {
+          id: `assistant-err-${currentRequestId}`,
+          role: 'assistant',
+          content: '',
+          timestamp: new Date().toISOString(),
+          error: quotaError,
+        };
+        setChatTurns((prev) => [...prev, assistantErrorTurn]);
+        setStatus('unavailable');
+        return;
+      }
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || t('অনুরোধ সম্পন্ন করা যায়নি।', 'Request could not be processed.'));
+      }
+
+      const data: AnswerResult = await res.json();
+
+      if (activeRequestIdRef.current === currentRequestId) {
+        if (data.userQuota) {
+          setQuota(data.userQuota);
+        }
+
+        const assistantTurn: ChatTurn = {
+          id: `assistant-${currentRequestId}`,
+          role: 'assistant',
+          content:
+            data.followUpResponse?.directAnswer ||
+            data.plainLanguageExplanation?.meaning ||
+            data.problemSummary?.understanding ||
+            '',
+          timestamp: new Date().toISOString(),
+          result: data,
+        };
+
+        setChatTurns((prev) => [...prev, assistantTurn]);
+        setStreamingTurnId(assistantTurn.id);
+        if (data.isFollowUp && data.followUpResponse) {
+          setStreamingStage('done');
+        } else if (data.problemSummary?.understanding) {
+          setStreamingStage('understanding');
+        } else if (data.plainLanguageExplanation?.meaning) {
+          setStreamingStage('meaning');
+        } else {
+          setStreamingStage('done');
+        }
+        setStatus(data.status);
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        return;
+      }
+      if (activeRequestIdRef.current === currentRequestId) {
+        const fallbackMsg = err.message || t('সার্ভার ত্রুটি। অনুগ্রহ করে আবার চেষ্টা করুন।', 'Server error. Please try again.');
+        setErrorMsg(fallbackMsg);
+        const assistantErrorTurn: ChatTurn = {
+          id: `assistant-err-${currentRequestId}`,
+          role: 'assistant',
+          content: '',
+          timestamp: new Date().toISOString(),
+          error: fallbackMsg,
+        };
+        setChatTurns((prev) => [...prev, assistantErrorTurn]);
+        setStatus('unavailable');
+      }
+    }
+  };
+
+
+  const handleClarificationSubmit = (lastResult: AnswerResult) => {
+    // Extract non-empty answers and map directly to canonical fieldIds
+    const answeredFacts: FactValue[] = Object.entries(clarificationAnswers)
+      .filter(([_, val]) => val && val.trim().length > 0)
+      .map(([fieldId, val]) => ({
+        fieldId,
+        value: val.trim(),
+        status: 'user_confirmed',
+        provenance: 'clarification_response',
+      }));
+
+    if (answeredFacts.length === 0) return;
+
+    // Build human-friendly follow up clarification message
+    const answeredSummary = answeredFacts.map((f) => `${f.fieldId}: ${f.value}`).join(', ');
+    const followUpMessage = `${t('অতিরিক্ত নিশ্চিত তথ্য: ', 'Additional confirmed details: ')}${answeredSummary}`;
+
+    handleAsk(followUpMessage, answeredFacts, lang);
+  };
+
+  const handleGoToDraft = (docType: string, turnResult?: AnswerResult, stepContext?: string) => {
+    const activeResult = turnResult || [...chatTurns].reverse().find((t) => t.result)?.result;
+    if (!activeResult) return;
+
+    const lastUserTurn = [...chatTurns].reverse().find((t) => t.role === 'user');
+    const draftPayload = {
+      type: docType,
+      facts: activeResult.userFacts,
+      query: lastUserTurn?.content || '',
+      stepContext: stepContext || '',
+      issueTitle: activeResult.problemSummary?.identifiedIssue || '',
+    };
+    try {
+      sessionStorage.setItem('mylaws_pending_draft', JSON.stringify(draftPayload));
+    } catch {}
+    router.push('/drafts');
+  };
+
+  // Reference to prevent duplicate URL triggers
+  const hasHandledUrlRef = useRef<string | null>(null);
+
+  // Persist conversation turns to localStorage whenever they update
+  useEffect(() => {
+    if (chatTurns.length > 0 && !chatTurns[0]?.id?.startsWith('turn-demo-')) {
+      saveConversation(chatTurns);
+    }
+  }, [chatTurns]);
+
+  // Handle URL query parameters (?prompt=..., ?q=..., ?id=..., ?new=1) and session restoration
+  useEffect(() => {
+    const isNew = searchParams.get('new') === '1';
+    const targetId = searchParams.get('id');
+    const targetPrompt = searchParams.get('prompt') || searchParams.get('q');
+
+    if (isNew) {
+      if (hasHandledUrlRef.current === 'new') return;
+      hasHandledUrlRef.current = 'new';
+      clearActiveConversationSession();
+      setChatTurns([]);
+      setInput('');
+      setStatus('ready');
+      window.history.replaceState({}, '', '/ask');
+      return;
+    }
+
+    if (targetId || targetPrompt) {
+      const key = `${targetId || ''}:${targetPrompt || ''}`;
+      if (hasHandledUrlRef.current === key) return;
+      hasHandledUrlRef.current = key;
+
+      // 1. Only restore from local storage if targetId is explicitly provided (clicking a history drawer item)
+      if (targetId) {
+        const cached = findStoredConversation(targetId, targetPrompt);
+        if (cached && cached.turns && cached.turns.length > 0) {
+          setChatTurns(cached.turns);
+          setActiveConversationId(cached.id);
+          setStatus('ready');
+          setInput('');
+          window.history.replaceState({}, '', '/ask');
+          return;
+        }
+      }
+
+      // 2. If targetPrompt is passed (e.g. from home page prompt, chip, sample query, or search bar):
+      // ALWAYS execute handleAsk so the AI generates the answer with the live letter-by-letter animation!
+      if (targetPrompt && targetPrompt.trim()) {
+        handleAsk(targetPrompt.trim());
+        window.history.replaceState({}, '', '/ask');
+        return;
+      }
+    }
+
+    // 3. Fallback: on fresh page load without URL parameters, restore the active conversation if available
+    if (chatTurns.length === 0 && !hasHandledUrlRef.current) {
+      hasHandledUrlRef.current = 'initial';
+      const active = getActiveConversation();
+      if (active && active.turns && active.turns.length > 0) {
+        setChatTurns(active.turns);
+        setStatus('ready');
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, chatTurns.length]);
+
+  const latestResult = [...chatTurns].reverse().find((t) => t.result)?.result;
+  const dailyLimit = quota?.dailyLimit || 10;
+  const remainingQuestions = quota ? quota.remaining : dailyLimit;
+  const formattedRemaining = `${remainingQuestions}`;
+  const formattedDailyLimit = `${dailyLimit}`;
+  const isChatMode = chatTurns.length > 0;
+
+  return (
+    <div className="flex-1 flex flex-col bg-bg-light text-primary-light font-sans transition-colors duration-200">
+      <Header />
+
+      <main className={`flex-1 w-full mx-auto px-3 sm:px-4 ${isChatMode ? 'max-w-3xl py-2 sm:py-4 pb-52 sm:pb-52' : 'max-w-4xl py-2 md:py-6 flex flex-col justify-between md:justify-center h-[calc(100dvh-12rem)] md:h-auto'}`}>
+
+        {/* ============================================================
+            INITIAL COMPOSER HERO (Claude Style - Shown only before conversation starts)
+            ============================================================ */}
+        {!isChatMode && (
+          <div className="flex-1 flex flex-col justify-between md:justify-center max-w-3xl mx-auto w-full px-2 sm:px-4 py-2 md:py-8 animate-in fade-in duration-300 h-full">
+            {/* Top / Center Greeting (Clean Claude style - centered typography, no emblem) */}
+            <div className="flex flex-col items-center text-center space-y-2 my-auto md:my-0 md:mb-8 px-2">
+              <h1 className="font-cinzel text-2xl sm:text-4xl font-bold tracking-tight text-primary-light leading-snug">
+                {getGreeting()}
+              </h1>
+              <p className="hidden sm:block font-hind text-xs sm:text-sm text-secondary-light max-w-md">
+                {t(
+                  'আপনার আইনি পরিস্থিতি বা সমস্যাটি খুলে বলুন—আমরা যাচাইকৃত আইন, করণীয় ধাপ ও প্রস্তুত খসড়া দেব।',
+                  'Describe your situation or legal question—we provide verified statutes, actionable steps, and drafts.'
+                )}
+              </p>
+            </div>
+
+            {/* Asking Chat Box (Down on mobile like Claude, centered on desktop - unified in one div) */}
+            <div className="w-full pb-2 md:pb-0">
+              <div className="w-full rounded-2xl sm:rounded-3xl border border-border-light bg-surface-cardLight p-3.5 sm:p-4 shadow-sm hover:shadow-md transition-all focus-within:border-accent-light/60 focus-within:ring-2 focus-within:ring-accent-light/10">
+                <textarea
+                  id="top-legal-input"
+                  ref={topInputRef}
+                  rows={2}
+                  value={input}
+                  onInput={handleTextareaInput}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && (typeof window === 'undefined' || window.innerWidth > 768)) {
+                      e.preventDefault();
+                      if (status !== 'submitted' && status !== 'finding_sources' && input.trim()) {
+                        handleAsk();
+                      }
+                    }
+                  }}
+                  placeholder={t(
+                    'আপনার আইনি পরিস্থিতি বা প্রশ্নটি লিখুন...',
+                    'Describe your situation or legal question...'
+                  )}
+                  className="w-full resize-none border-none bg-transparent p-1 text-base sm:text-base text-primary-light placeholder-secondary-light/60 focus:outline-none min-h-[56px] sm:min-h-[72px] leading-relaxed"
+                />
+
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center gap-2">
+                    {/* New Conversation Button */}
+                    <button
+                      type="button"
+                      onClick={handleClearCase}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-semibold font-cinzel rounded-xl border border-accent-light/30 bg-accent-light/10 text-accent-light hover:bg-accent-light/20 hover:border-accent-light/60 transition-all active:scale-95 cursor-pointer shadow-2xs"
+                      title={t('নতুন কথোপকথন শুরু করুন', 'Start New Conversation')}
+                      aria-label={t('নতুন কথোপকথন', 'New Conversation')}
+                    >
+                      <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+                      <span>{t('নতুন কথোপকথন', 'New Conversation')}</span>
+                    </button>
+
+                    <span className="hidden md:inline text-[11px] text-secondary-light/70 font-hind">
+                      {t('Enter চাপলে উত্তর আসবে', 'Press Enter to submit')}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={status === 'submitted' || status === 'finding_sources' || !input.trim()}
+                    onClick={() => handleAsk()}
+                    className="ml-auto h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center bg-accent-light text-white shadow hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed active-press transition-all cursor-pointer shrink-0"
+                    title={t('অনুসন্ধান চালান', 'Submit Inquiry')}
+                    aria-label={t('অনুসন্ধান চালান', 'Submit Inquiry')}
+                  >
+                    {status === 'submitted' || status === 'finding_sources' ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ArrowUp className="h-4 w-4 stroke-[2.5]" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Example Chips - Only on desktop to keep mobile screen completely clean and uncluttered like Claude */}
+              <div className="hidden md:flex flex-wrap items-center justify-center gap-2 mt-6 w-full max-w-2xl mx-auto px-1 py-1">
+                {exampleChips.map((chip, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setInput(chip.query);
+                      if (topInputRef.current) {
+                        topInputRef.current.focus();
+                        topInputRef.current.style.height = 'auto';
+                      }
+                    }}
+                    className="shrink-0 text-xs px-3.5 py-1.5 rounded-full border border-border-light bg-surface-light text-secondary-light hover:border-accent-light hover:text-accent-light hover:bg-surface-cardLight transition-all cursor-pointer shadow-2xs font-hind flex items-center gap-1.5 active-press whitespace-nowrap"
+                  >
+                    <Sparkles className="h-3 w-3 text-accent-light/70" />
+                    <span>{chip.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Discreet disclaimer below dock on desktop */}
+              <p className="text-center text-[10px] text-secondary-light/60 font-hind mt-2 hidden md:block">
+                {t(
+                  'MyLaws সরকারি গেজেট ও সংবিধিবদ্ধ আইন বিশ্লেষণ করে। আদালত বা আনুষ্ঠানিক ওকালতির জন্য মূল গেজেট যাচাই করুন।',
+                  'MyLaws analyzes official statutory gazettes. Verify official legal gazettes for formal court proceedings.'
+                )}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Global Error Banner */}
+        {errorMsg && (
+          <div className="mt-6 p-4 rounded-xl border border-red-300 bg-red-50 text-red-800 text-xs flex items-start gap-3">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <span className="font-semibold">{t('ত্রুটি ঘটেছে:', 'Notice:')}</span>
+              <p>{errorMsg}</p>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================
+            CHAT STREAM CONVERSATION VIEW (Active after inquiry starts)
+            ============================================================ */}
+        {isChatMode && (
+          <div className="mt-2 sm:mt-3 space-y-6 sm:space-y-8 animate-in fade-in duration-200">
+            {chatTurns.map((turn, turnIdx) => (
+              <div key={turn.id} className="space-y-4">
+                {/* ------------------------------------------------------
+                    USER MESSAGE BUBBLE
+                    ------------------------------------------------------ */}
+                {turn.role === 'user' && (
+                  <div className="flex items-start justify-end gap-3 max-w-2xl ml-auto animate-message-in">
+                    <div className="space-y-1.5 text-right">
+                      <div className="flex items-center justify-end gap-2 text-[10px] text-secondary-light font-hind">
+                        <span>{new Date(turn.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="font-semibold text-primary-light">{user?.displayName || t('আপনি', 'You')}</span>
+                      </div>
+                      <div className="p-4 sm:p-5 rounded-2xl rounded-tr-xs bg-accent-light text-white font-hind text-sm shadow-sm leading-relaxed text-left whitespace-pre-wrap transition-transform duration-200 hover:scale-[1.005]">
+                        {turn.content}
+                      </div>
+                    </div>
+                    <div className="h-8 w-8 rounded-full bg-accent-light/20 border border-accent-light/40 flex items-center justify-center shrink-0 mt-4 text-accent-light shadow-2xs">
+                      <User className="h-4 w-4" />
+                    </div>
+                  </div>
+                )}
+
+                {/* ------------------------------------------------------
+                    ASSISTANT MESSAGE WITH CANONICAL 4-STEP CARDS
+                    ------------------------------------------------------ */}
+                {turn.role === 'assistant' && (
+                  <div className="space-y-6 animate-message-in">
+                    {/* Top Assistant Persona Banner & Quick Copy / Translate Action Bar */}
+                    <div className="flex items-center justify-between gap-2.5 pb-1">
+                      {/* Left: Persona Identity & Timestamp */}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="h-8 w-8 rounded-full bg-accent-light/15 border border-accent-light/30 p-1 flex items-center justify-center shrink-0 shadow-2xs">
+                          <Image
+                            src="/images/mylaws-assistant-avatar.png"
+                            alt="MyLaws"
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-contain"
+                            priority
+                          />
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 min-w-0">
+                          <span className="font-cinzel text-xs font-bold text-primary-light tracking-wide truncate">
+                            {t('MyLaws আইনি সহকারী', 'MyLaws Legal Assistant')}
+                          </span>
+                          <span className="text-[10px] text-secondary-light/70 font-hind whitespace-nowrap shrink-0">
+                            {new Date(turn.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Right: Cohesive Micro-Action Toolbar (Translate & Copy) */}
+                      {turn.result && (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {(() => {
+                            const transState = translatedTurns[turn.id];
+                            const sampleText =
+                              turn.result?.followUpResponse?.directAnswer ||
+                              turn.result?.plainLanguageExplanation?.meaning ||
+                              '';
+                            const isBn = /[\u0980-\u09FF]/.test(sampleText);
+                            const targetLabel = isBn ? 'English' : 'বাংলা';
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleTranslate(turn.id, turn.result!)}
+                                disabled={transState?.isLoading}
+                                className={`h-7 inline-flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-hind font-semibold border transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                                  transState?.isTranslated
+                                    ? 'border-accent-light bg-accent-light text-white font-bold ring-2 ring-accent-light/25 shadow-xs'
+                                    : 'border-accent-light/40 bg-accent-light/10 text-accent-light hover:bg-accent-light hover:text-white'
+                                }`}
+                                title={
+                                  transState?.isTranslated
+                                    ? t('মূল লেখা দেখুন', 'Show original text')
+                                    : t(`${targetLabel} অনুবাদ`, `Translate to ${targetLabel}`)
+                                }
+                              >
+                                {transState?.isLoading ? (
+                                  <>
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-accent-light" />
+                                    <span className="text-[11px] whitespace-nowrap">{t('অনুবাদ হচ্ছে...', 'Translating...')}</span>
+                                  </>
+                                ) : transState?.isTranslated ? (
+                                  <>
+                                    <Languages className="h-3.5 w-3.5" />
+                                    <span className="text-[11px] font-bold whitespace-nowrap">{t('মূল লেখা', 'Original')}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Languages className="h-3.5 w-3.5 stroke-[2.2] shrink-0" />
+                                    <span className="text-[11px] font-bold tracking-wide whitespace-nowrap">
+                                      {targetLabel}
+                                      <span className="hidden sm:inline"> {t('অনুবাদ', 'Translation')}</span>
+                                    </span>
+                                  </>
+                                )}
+                              </button>
+                            );
+                          })()}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const transState = translatedTurns[turn.id];
+                              const activeMeaning = transState?.isTranslated && transState.translatedMeaning
+                                ? transState.translatedMeaning
+                                : turn.result?.plainLanguageExplanation?.meaning || '';
+                              const activeUnderstanding = transState?.isTranslated && transState.translatedUnderstanding
+                                ? transState.translatedUnderstanding
+                                : turn.result?.problemSummary?.understanding || '';
+                              const activeDirect = transState?.isTranslated && transState.translatedDirectAnswer
+                                ? transState.translatedDirectAnswer
+                                : turn.result?.followUpResponse?.directAnswer || '';
+
+                              const rawCopy = activeDirect || `${activeUnderstanding}\n\n${activeMeaning}`;
+                              const copyText = rawCopy.replace(/\*\*/g, '').trim();
+                              handleCopyTurn(turn.id, copyText);
+                            }}
+                            className={`h-7 inline-flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-hind border transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                              copiedTurnId === turn.id
+                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 font-bold'
+                                : 'border-border-light/80 bg-surface-cardLight text-secondary-light hover:text-primary-light hover:border-accent-light/40'
+                            }`}
+                            title={t('উত্তর কপি করুন', 'Copy response')}
+                          >
+                            {copiedTurnId === turn.id ? (
+                              <>
+                                <Check className="h-3.5 w-3.5 text-emerald-600" />
+                                <span className="text-emerald-700 font-semibold text-[11px] whitespace-nowrap">{t('কপি হয়েছে', 'Copied')}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-3.5 w-3.5 text-accent-light" />
+                                <span className="text-[11px] font-medium whitespace-nowrap">{t('কপি', 'Copy')}</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Error Turn Message if failed */}
+                    {turn.error ? (
+                      <div className="p-4 rounded-2xl border border-red-300 bg-red-50 text-red-800 text-xs flex items-start gap-3">
+                        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <span className="font-semibold">{t('ত্রুটি ঘটেছে:', 'Notice:')}</span>
+                          <p>{turn.error}</p>
+                        </div>
+                      </div>
+                    ) : turn.result ? (
+                      turn.result.isFollowUp && turn.result.followUpResponse ? (
+                        <div className="space-y-4">
+                          {/* Top Contextual Badge */}
+                          <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl border border-border-light bg-surface-light shadow-2xs">
+                            <div className="flex items-center gap-2.5">
+                              <span className="p-1.5 rounded-lg bg-accent-light/10 text-accent-light">
+                                <MessageSquare className="h-4 w-4" />
+                              </span>
+                              <div>
+                                <span className="text-xs font-bold text-primary-light font-anek block">
+                                  {turn.result.isGreeting
+                                    ? t('স্বাগতম ও পরিচিতি', 'Welcome & Introduction')
+                                    : turn.result.isCapability
+                                    ? t('MyLaws-এর সেবাসমূহ ও সক্ষমতা', 'MyLaws Capabilities & Services')
+                                    : turn.result.isOutOfScope
+                                    ? t('সাধারণ আলোচনা ও প্রশ্নোত্তর', 'General Conversation')
+                                    : t('প্রাসঙ্গিক আইনি উত্তর ও বিশদ তথ্য', 'Contextual Legal Follow-Up')}
+                                </span>
+                                <span className="text-[11px] text-secondary-light font-hind">
+                                  {turn.result.isGreeting
+                                    ? t('আপনার আইনি সহকারী সেবায় প্রস্তুত', 'Your legal assistant is ready to help')
+                                    : turn.result.isCapability
+                                    ? t('যাচাইকৃত আইন, অ্যাকশন চেকলিস্ট ও ড্রাফট সেবা', 'Verified law, action checklists, and legal drafts')
+                                    : turn.result.isOutOfScope
+                                    ? t('সহায়তামূলক উত্তর ও আইনি সেবা সংযোগ', 'Helpful response and legal guidance connection')
+                                    : t('সংক্ষিপ্ত ও কার্যকর আইনি ব্যাখ্যা', 'Focused answer based on your inquiry')}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Provenance Badge */}
+                            <div className="flex items-center gap-2">
+                              {turn.result.engineProvenance === 'online_meta' ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+                                  <Cpu className="h-3 w-3" />
+                                  <span>{t('মেটা এআই ও গেজেট যৌথভাবে বিশ্লেষিত', 'Meta-assisted verified response')}</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-accent-light/10 text-accent-light border border-accent-light/20">
+                                  <BookmarkCheck className="h-3 w-3" />
+                                  <span>{t('যাচাইকৃত সংবিধিবদ্ধ উত্তর', 'Verified statutory guidance')}</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Main Focused Conversational Response Box */}
+                          <div className="p-4 sm:p-7 rounded-2xl sm:rounded-3xl border border-border-light bg-surface-cardLight shadow-sm space-y-4 sm:space-y-5">
+                            {/* Direct Conversational Answer with Letter-by-Letter Typewriter Animation */}
+                            <div className="space-y-2">
+                              <TypewriterText
+                                text={toEnglishNum(
+                                  translatedTurns[turn.id]?.isTranslated && translatedTurns[turn.id]?.translatedDirectAnswer
+                                    ? translatedTurns[turn.id]!.translatedDirectAnswer!
+                                    : turn.result.followUpResponse.directAnswer
+                                )}
+                                isStreaming={streamingTurnId === turn.id}
+                                onComplete={() => setStreamingTurnId(null)}
+                                isBn={lang === 'bn'}
+                              />
+                            </div>
+
+                            {/* Structured Key Points / Documents / Steps - Collapsible Dropdown */}
+                            {streamingTurnId !== turn.id && turn.result.followUpResponse.keyPoints && turn.result.followUpResponse.keyPoints.length > 0 && (
+                              <details className="group rounded-2xl border border-border-light/80 bg-surface-light/60 hover:border-accent-light/40 transition-all shadow-2xs overflow-hidden">
+                                <summary className="flex items-center justify-between gap-3 p-3.5 sm:p-4 cursor-pointer select-none list-none text-xs sm:text-sm font-anek font-bold text-primary-light hover:bg-bg-light/60 transition-colors">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="h-6 w-6 rounded-lg bg-accent-light/10 text-accent-light flex items-center justify-center shrink-0">
+                                      <Layers className="h-3.5 w-3.5" />
+                                    </div>
+                                    <span className="font-semibold text-primary-light font-anek">
+                                      {turn.result.isGreeting || turn.result.isCapability
+                                        ? t('MyLaws কীভাবে সাহায্য করে (৪টি মূল স্তম্ভ দেখুন)', 'How MyLaws assists you (View 4 core pillars)')
+                                        : t('প্রাসঙ্গিক ধাপ ও দিকনির্দেশনা দেখুন', 'View relevant steps & guidance')}
+                                    </span>
+                                    <span className="text-[11px] font-normal text-secondary-light font-hind hidden sm:inline-block">
+                                      • {t('ক্লিক করে জানুন', 'Click to view')}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-accent-light shrink-0">
+                                    <span className="text-[11px] font-hind font-semibold group-open:hidden">
+                                      {t('দেখুন', 'Expand')}
+                                    </span>
+                                    <span className="text-[11px] font-hind font-semibold hidden group-open:inline">
+                                      {t('সংক্ষেপ করুন', 'Collapse')}
+                                    </span>
+                                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
+                                  </div>
+                                </summary>
+
+                                <div className="p-3.5 sm:p-4 pt-1 sm:pt-2 border-t border-border-light/40 space-y-2.5 bg-bg-light/30">
+                                  {turn.result.followUpResponse.keyPoints.map((point, pIdx) => {
+                                    const colonIdx = point.indexOf(':');
+                                    const hasColon = colonIdx > -1 && colonIdx < 45;
+                                    const title = hasColon ? point.slice(0, colonIdx + 1) : '';
+                                    const desc = hasColon ? point.slice(colonIdx + 1).trim() : point;
+
+                                    return (
+                                      <div
+                                        key={pIdx}
+                                        className="flex items-start gap-3 p-3 rounded-xl bg-surface-cardLight border border-border-light/70 text-xs sm:text-sm font-hind text-primary-light leading-relaxed transition-all hover:border-accent-light/30 shadow-2xs"
+                                      >
+                                        <div className="h-5 w-5 rounded-full bg-accent-light/15 text-accent-light flex items-center justify-center shrink-0 mt-0.5 font-bold font-anek text-[11px]">
+                                          {pIdx + 1}
+                                        </div>
+                                        <div className="flex-1 leading-relaxed">
+                                          {hasColon ? (
+                                            <>
+                                              <strong className="font-bold text-accent-light dark:text-accent-dark font-anek mr-1.5">
+                                                {toEnglishNum(title)}
+                                              </strong>
+                                              <span className="text-primary-light">{toEnglishNum(desc)}</span>
+                                            </>
+                                          ) : (
+                                            <FormattedMessageText text={toEnglishNum(point)} density="compact" />
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </details>
+                            )}
+
+                            {/* Suggested Next Step Callout */}
+                            {turn.result.followUpResponse.suggestedNextStep && (
+                              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-600/20 text-xs sm:text-sm text-amber-900 dark:text-amber-200 flex items-start gap-3">
+                                <Info className="h-4 w-4 shrink-0 text-amber-700 mt-0.5" />
+                                <div className="space-y-1">
+                                  <span className="font-bold font-anek block">{t('পরবর্তী করণীয় পদক্ষেপ:', 'Recommended Next Step:')}</span>
+                                  <p className="font-hind leading-relaxed">
+                                    {toEnglishNum(turn.result.followUpResponse.suggestedNextStep)}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Interactive Suggested Legal Topics */}
+                            {turn.result.followUpResponse.suggestedTopics && turn.result.followUpResponse.suggestedTopics.length > 0 && (
+                              <div className="pt-3 border-t border-border-light/60 space-y-2.5">
+                                <span className="text-[11px] font-hind text-secondary-light font-semibold flex items-center gap-1.5">
+                                  <Sparkles className="h-3 w-3 text-accent-light" />
+                                  {t('যেসব আইনি বিষয়ে জানতে পারেন:', 'Suggested legal topics to explore:')}
+                                </span>
+                                <div className="flex flex-wrap gap-2">
+                                  {turn.result.followUpResponse.suggestedTopics.map((topic, tIdx) => (
+                                    <button
+                                      key={tIdx}
+                                      type="button"
+                                      onClick={() => {
+                                        setInput(topic.query);
+                                        if (bottomInputRef.current) {
+                                          bottomInputRef.current.focus();
+                                        }
+                                      }}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-anek font-medium bg-bg-light/90 border border-border-light hover:border-accent-light/50 hover:bg-accent-light/10 text-primary-light transition-all cursor-pointer shadow-2xs group"
+                                    >
+                                      <span className="group-hover:text-accent-light transition-colors">{topic.title}</span>
+                                      <ArrowRight className="h-2.5 w-2.5 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 text-accent-light transition-all" />
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Clickable Statutory Citations */}
+                            {streamingTurnId !== turn.id && turn.result.followUpResponse.sourceIds && turn.result.followUpResponse.sourceIds.length > 0 && (
+                              <div className="pt-2 flex flex-wrap items-center gap-2 border-t border-border-light/60">
+                                <span className="text-[11px] font-hind text-secondary-light flex items-center gap-1">
+                                  <BookOpen className="h-3 w-3" />
+                                  {t('সংশ্লিষ্ট সংবিধিবদ্ধ বিধান:', 'Cited Statutory Provisions:')}
+                                </span>
+                                {turn.result.followUpResponse.sourceIds.map((sid) => (
+                                  <button
+                                    key={sid}
+                                    type="button"
+                                    onClick={() => setSelectedSourceId(sid)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-anek font-semibold bg-accent-light/10 text-accent-light hover:bg-accent-light hover:text-white transition-all cursor-pointer border border-accent-light/20"
+                                  >
+                                    <span>{getSourceLabel(sid, lang)}</span>
+                                    <ArrowRight className="h-2.5 w-2.5 opacity-60" />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Optional Draft Offer in follow-up if relevant */}
+                            {streamingTurnId !== turn.id && turn.result.draftOffer && (
+                              <div className="pt-3 border-t border-border-light/60 flex items-center justify-between gap-3 flex-wrap">
+                                <span className="text-xs text-secondary-light font-hind">
+                                  {t('এই বিষয়ের আনুষ্ঠানিক আইনি খসড়া ও আবেদনপত্র প্রস্তুত করতে চান?', 'Ready to draft a formal legal petition or application?')}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleGoToDraft(turn.result!.draftOffer!.documentType, turn.result)}
+                                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-light text-white text-xs font-cinzel font-bold tracking-wider hover:opacity-90 transition-all cursor-pointer shadow"
+                                >
+                                  <span>{t('আনুষ্ঠানিক খসড়া তৈরি করুন', 'PREPARE FORMAL DRAFT')}</span>
+                                  <ArrowRight className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Matched Verified Advocate Recommendation Widget */}
+                            {streamingTurnId !== turn.id && (turn.result.followUpResponse.recommendedLawyers && turn.result.followUpResponse.recommendedLawyers.length > 0 ? (
+                              <div className="pt-3 border-t border-border-light/70 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Scale className="h-4 w-4 text-[#9A6F32]" />
+                                    <span className="font-anek font-bold text-xs sm:text-sm text-primary-light">
+                                      {t('আপনার ঘটনার জন্য সুপারিশকৃত যাচাইকৃত আইনজীবী:', 'Verified Advocates Matched for Your Situation:')}
+                                    </span>
+                                  </div>
+                                  <Link
+                                    href={turn.result.followUpResponse.lawyerDomain ? `/lawyers?topic=${turn.result.followUpResponse.lawyerDomain}` : '/lawyers'}
+                                    className="text-xs text-[#9A6F32] font-bold hover:underline font-anek inline-flex items-center gap-1"
+                                  >
+                                    <span>{t('সব দেখুন', 'View All')}</span>
+                                    <ArrowRight className="h-3 w-3" />
+                                  </Link>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                  {turn.result.followUpResponse.recommendedLawyers.map((lawyer) => (
+                                    <div
+                                      key={lawyer.id}
+                                      className="p-3 sm:p-3.5 rounded-2xl border border-[#DDD3C1] dark:border-[#38312B] bg-[#FAF7F0] dark:bg-[#1C1815] hover:border-[#9A6F32]/60 transition-all flex flex-col justify-between space-y-2.5 shadow-2xs"
+                                    >
+                                      <div className="space-y-1">
+                                        <div className="flex items-center justify-between gap-1.5">
+                                          <span className="text-[10px] font-bold font-anek px-2 py-0.5 rounded-full bg-[#9A6F32]/15 text-[#9A6F32]">
+                                            {lawyer.district}
+                                          </span>
+                                          <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-0.5">
+                                            <CheckCircle2 className="h-3 w-3" />
+                                            <span>{t('সনদ যাচাইকৃত', 'Verified')}</span>
+                                          </span>
+                                        </div>
+
+                                        <h5 className="font-anek font-bold text-xs sm:text-sm text-[#231F1C] dark:text-[#F1EDE1] leading-snug">
+                                          {lang === 'bn' ? lawyer.nameBn : lawyer.nameEn}
+                                        </h5>
+                                        <p className="text-[11px] text-[#5A534A] dark:text-[#B5ADA3] font-hind truncate">
+                                          {lawyer.barCouncilId} • {lawyer.experienceYears}+ {t('বছর অভিজ্ঞতা', 'yrs exp')}
+                                        </p>
+                                        <p className="text-[11px] text-[#5A534A] dark:text-[#B5ADA3] font-hind line-clamp-1">
+                                          📍 {lang === 'bn' ? lawyer.chamberAddressBn : lawyer.chamberAddressEn}
+                                        </p>
+                                      </div>
+
+                                      <div className="pt-2 border-t border-border-light/60 flex items-center gap-2">
+                                        <a
+                                          href={`tel:${lawyer.phone}`}
+                                          className="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl bg-[#9A6F32] text-white text-[11px] font-anek font-bold hover:bg-[#855D28] transition-colors shadow-2xs active-press"
+                                        >
+                                          <Phone className="h-3 w-3" />
+                                          <span>{t('সরাসরি কল', 'Call')} ({lawyer.phone})</span>
+                                        </a>
+                                        <Link
+                                          href={`/lawyers?district=${encodeURIComponent(lawyer.district)}`}
+                                          className="inline-flex items-center justify-center py-1.5 px-2.5 rounded-xl border border-border-light bg-surface-cardLight text-[11px] font-anek font-semibold text-secondary-light hover:text-[#9A6F32] transition-colors"
+                                        >
+                                          <span>{t('চেম্বার', 'Chamber')}</span>
+                                        </Link>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="pt-2 border-t border-border-light/50 flex items-center justify-between gap-2 text-xs font-hind">
+                                <span className="text-secondary-light flex items-center gap-1.5">
+                                  <Scale className="h-3.5 w-3.5 text-[#9A6F32]" />
+                                  <span>{t('আপনার জেলায় বিশেষজ্ঞ আইনজীবী প্রয়োজন?', 'Need an advocate in your district?')}</span>
+                                </span>
+                                <Link
+                                  href="/lawyers"
+                                  className="text-accent-light font-bold hover:underline inline-flex items-center gap-1 font-anek"
+                                >
+                                  <span>{t('ডিরেক্টরি দেখুন', 'Browse Directory')}</span>
+                                  <ArrowRight className="h-3 w-3" />
+                                </Link>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 sm:p-7 rounded-2xl sm:rounded-3xl border border-border-light bg-surface-cardLight shadow-sm space-y-5 sm:space-y-6 text-primary-light">
+                          {/* Top Meta Bar: Issue & Provenance */}
+                          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-light/60 pb-3.5">
+                            <div className="flex items-center gap-2.5">
+                              <span className="p-1 rounded-lg bg-accent-light/10 text-accent-light flex items-center justify-center w-7 h-7 shrink-0">
+                                <Image
+                                  src="/images/mylaws-assistant-avatar.png"
+                                  alt=""
+                                  width={20}
+                                  height={20}
+                                  className="w-full h-full object-contain"
+                                />
+                              </span>
+                              <span className="text-xs sm:text-sm font-bold text-primary-light font-anek">
+                                {toEnglishNum(turn.result.problemSummary?.identifiedIssue) || t('আইনি অধিকার পর্যালোচনা', 'Legal Applicability Review')}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {turn.result.engineProvenance === 'online_meta' ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+                                  <Cpu className="h-3 w-3" />
+                                  <span>{t('মেটা এআই ও গেজেট যৌথভাবে বিশ্লেষিত', 'Meta-assisted verified response')}</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-accent-light/10 text-accent-light border border-accent-light/20">
+                                  <BookmarkCheck className="h-3 w-3" />
+                                  <span>{t('যাচাইকৃত সংবিধিবদ্ধ নির্দেশিকা', 'Verified statutory guidance')}</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 1. Conversational Understanding & Empathy with Typewriter Streaming */}
+                          <div className="space-y-2">
+                            <TypewriterText
+                              text={toEnglishNum(
+                                (translatedTurns[turn.id]?.isTranslated && translatedTurns[turn.id]?.translatedUnderstanding
+                                  ? translatedTurns[turn.id]!.translatedUnderstanding
+                                  : turn.result.problemSummary?.understanding) ||
+                                  t(
+                                    'আপনার বিষয়টি পর্যালোচনা করে এর সাথে প্রযোজ্য আইনি ক্ষেত্র চিহ্নিত করা হয়েছে।',
+                                    'We have analyzed your situation and identified the applicable statutory legal path.'
+                                  )
+                              )}
+                              isStreaming={streamingTurnId === turn.id && streamingStage === 'understanding'}
+                              onComplete={() => {
+                                if (turn.result?.plainLanguageExplanation?.meaning) {
+                                  setStreamingStage('meaning');
+                                } else {
+                                  setStreamingStage('done');
+                                  setStreamingTurnId(null);
+                                }
+                              }}
+                              onSkip={() => {
+                                setStreamingStage('done');
+                                setStreamingTurnId(null);
+                              }}
+                              isBn={lang === 'bn'}
+                            />
+                          </div>
+
+                          {/* Clarification Questions (if active in this turn) */}
+                          {turn.result.status === 'clarifying' && turn.result.clarificationQuestions && turn.result.clarificationQuestions.length > 0 && (
+                            <div className="p-4 sm:p-5 rounded-2xl border border-amber-300 bg-amber-50/70 shadow-2xs space-y-3.5">
+                              <div className="flex items-center gap-2 text-amber-900 border-b border-amber-200/80 pb-2.5">
+                                <HelpCircle className="h-4 w-4 text-amber-700 shrink-0" />
+                                <h4 className="font-anek font-bold text-xs sm:text-sm">
+                                  {t('আরও নির্ভুল পরামর্শের জন্য কয়েকটি প্রশ্নের উত্তর দিন', 'Answer a few quick questions for tailored guidance')}
+                                </h4>
+                              </div>
+
+                              <div className="space-y-3">
+                                {turn.result.clarificationQuestions.map((q: ClarificationQuestion) => (
+                                  <div key={q.fieldId} className="space-y-1.5">
+                                    <label className="block text-xs font-hind font-semibold text-primary-light">
+                                      {t(q.question.bn, q.question.en)}
+                                    </label>
+                                    {q.options && q.options.length > 0 ? (
+                                      <div className="flex flex-wrap gap-2">
+                                        {q.options.map((opt) => (
+                                          <button
+                                            key={opt.value}
+                                            type="button"
+                                            onClick={() =>
+                                              setClarificationAnswers((prev) => ({
+                                                ...prev,
+                                                [q.fieldId]: opt.value,
+                                              }))
+                                            }
+                                            className={`text-xs px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                                              clarificationAnswers[q.fieldId] === opt.value
+                                                ? 'border-accent-light bg-accent-light text-white font-medium shadow-xs'
+                                                : 'border-border-light bg-surface-light text-secondary-light hover:border-accent-light/60'
+                                            }`}
+                                          >
+                                            {t(opt.label.bn, opt.label.en)}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        value={clarificationAnswers[q.fieldId] || ''}
+                                        onChange={(e) =>
+                                          setClarificationAnswers((prev) => ({
+                                            ...prev,
+                                            [q.fieldId]: e.target.value,
+                                          }))
+                                        }
+                                        placeholder={t('এখানে লিখুন...', 'Type here...')}
+                                        className="w-full text-xs p-2.5 rounded-lg border border-border-light bg-surface-light text-primary-light focus:outline-none focus:ring-1 focus:ring-accent-light"
+                                      />
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="pt-1 flex justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => handleClarificationSubmit(turn.result!)}
+                                  className="px-4 py-2 rounded-lg bg-accent-light text-white text-xs font-cinzel font-bold tracking-wider hover:opacity-90 transition-all cursor-pointer shadow"
+                                >
+                                  {t('তথ্য জমা দিন ও সম্পূর্ণ সমাধান দেখুন', 'SUBMIT & REFRESH ANALYSIS')}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 2. What the Law Says (আইনের মতে ও সংবিধিবদ্ধ বিধান) */}
+                          {turn.result.plainLanguageExplanation && (streamingTurnId !== turn.id || streamingStage !== 'understanding') && (
+                            <div className="pt-2 border-t border-border-light/60 space-y-3">
+                              <div className="flex items-center gap-2">
+                                <BookOpen className="h-4 w-4 text-accent-light shrink-0" />
+                                <h4 className="font-anek text-sm sm:text-base font-bold text-primary-light">
+                                  {t('আইনের মতে:', 'What the Law Says:')}
+                                </h4>
+                              </div>
+
+                              <TypewriterText
+                                text={toEnglishNum(
+                                  translatedTurns[turn.id]?.isTranslated && translatedTurns[turn.id]?.translatedMeaning
+                                    ? translatedTurns[turn.id]!.translatedMeaning!
+                                    : turn.result.plainLanguageExplanation.meaning
+                                )}
+                                isStreaming={streamingTurnId === turn.id && streamingStage === 'meaning'}
+                                onComplete={() => {
+                                  setStreamingStage('done');
+                                  setStreamingTurnId(null);
+                                }}
+                                onSkip={() => {
+                                  setStreamingStage('done');
+                                  setStreamingTurnId(null);
+                                }}
+                                className="text-secondary-light"
+                                isBn={lang === 'bn'}
+                              />
+
+                              {/* Clickable Statutory Sources (Source pills as drawn in user sketch) */}
+                              {(() => {
+                                const allSourceIds = Array.from(
+                                  new Set([
+                                    ...(turn.result.explanation?.flatMap((e) => e.sourceIds || []) || []),
+                                    ...(turn.result.checklist?.flatMap((c) => c.sourceIds || []) || []),
+                                    ...(turn.result.followUpResponse?.sourceIds || []),
+                                  ])
+                                ).filter(Boolean);
+
+                                if (allSourceIds.length === 0) return null;
+
+                                return (
+                                  <div className="flex flex-wrap items-center gap-2 pt-1.5">
+                                    <span className="text-[11px] font-hind text-secondary-light flex items-center gap-1">
+                                      <Shield className="h-3 w-3 text-accent-light" />
+                                      {t('আইনি উৎস ও ধারা:', 'Statutory Sources:')}
+                                    </span>
+                                    {allSourceIds.map((sid) => (
+                                      <button
+                                        key={sid}
+                                        type="button"
+                                        onClick={() => setSelectedSourceId(sid)}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-anek font-semibold bg-accent-light/10 text-accent-light hover:bg-accent-light hover:text-white transition-all cursor-pointer border border-accent-light/20 shadow-2xs"
+                                        title={t('মূল সরকারি গেজেট ও ধারা দেখুন', 'View official statutory text')}
+                                      >
+                                        <span>{getSourceLabel(sid, lang)}</span>
+                                        <ArrowRight className="h-2.5 w-2.5 opacity-60" />
+                                      </button>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
+
+                              {/* Key Caveat / Advice */}
+                              {turn.result.plainLanguageExplanation.whatToDoNext && (
+                                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-600/20 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
+                                  <Info className="h-4 w-4 shrink-0 text-amber-700 mt-0.5" />
+                                  <div className="space-y-0.5">
+                                    <span className="font-bold block">{t('জরুরি করণীয়:', 'What to do next:')}</span>
+                                    <span className="font-hind leading-relaxed">
+                                      {toEnglishNum(
+                                        translatedTurns[turn.id]?.isTranslated && translatedTurns[turn.id]?.translatedWhatToDoNext
+                                          ? translatedTurns[turn.id]!.translatedWhatToDoNext!
+                                          : turn.result.plainLanguageExplanation.whatToDoNext
+                                      )}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* 3. Action Steps (আপনি এখন যে পদক্ষেপ নিবেন:-) */}
+                          {(streamingTurnId !== turn.id || streamingStage === 'done') && turn.result.checklist && turn.result.checklist.length > 0 && (
+                            <div className="pt-2 border-t border-border-light/60 space-y-3.5">
+                              <Checklist
+                                caseId={turn.result.answerId}
+                                steps={turn.result.checklist}
+                                onOpenSource={(id: string) => setSelectedSourceId(id)}
+                                onOpenOffice={(id: string) => setSelectedOfficeId(id)}
+                                onStartDraft={(dType, sText) => handleGoToDraft(dType, turn.result, sText)}
+                                variant="lineByLine"
+                                asDropdown={true}
+                                defaultOpen={false}
+                              />
+                            </div>
+                          )}
+
+                          {/* 4. Prepare Formal Draft (আনুষ্ঠানিক খসড়া তৈরি করুন) */}
+                          {(streamingTurnId !== turn.id || streamingStage === 'done') && (() => {
+                            const offer = turn.result.draftOffer || (() => {
+                              const dType = detectDraftType(
+                                `${turn.result.problemSummary?.identifiedIssue || ''} ${turn.result.checklist?.map((c) => c.text).join(' ') || ''}`
+                              );
+                              if (!dType) return null;
+                              const meta = DRAFT_CATALOG.find((d) => d.id === dType);
+                              if (!meta) return null;
+                              return {
+                                documentType: dType,
+                                documentTitle: t(meta.titleBn, meta.titleEn),
+                                description: t(meta.shortDescBn, meta.shortDescEn),
+                                prompt: t('আপনি কি এই ঘটনার প্রেক্ষিতে একটি আনুষ্ঠানিক আইনি খসড়া প্রস্তুত করতে চান?', 'Would you like to generate a formal legal draft for this issue?'),
+                                missingDetails: [] as string[],
+                              };
+                            })();
+
+                            if (!offer) return null;
+
+                            return (
+                              <div className="pt-3 border-t border-border-light/60">
+                                <div className="p-4 sm:p-5 rounded-2xl bg-accent-light/5 border border-accent-light/25 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4 text-accent-light shrink-0" />
+                                      <h4 className="font-anek font-bold text-sm sm:text-base text-primary-light">
+                                        {offer.documentTitle}
+                                      </h4>
+                                    </div>
+                                    <p className="font-hind text-xs text-secondary-light">
+                                      {offer.description}
+                                    </p>
+                                    {offer.missingDetails && offer.missingDetails.length > 0 && (
+                                      <p className="text-[11px] text-secondary-light/90 font-hind pt-1">
+                                        <span className="font-semibold">{t('প্রয়োজনীয় তথ্য: ', 'Details needed: ')}</span>
+                                        {offer.missingDetails.join(' • ')}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleGoToDraft(offer.documentType, turn.result)}
+                                    className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-accent-light text-white text-xs sm:text-sm font-cinzel font-bold tracking-wider hover:opacity-90 transition-all cursor-pointer shadow hover:shadow-md active-press"
+                                  >
+                                    <span>{t('আনুষ্ঠানিক খসড়া তৈরি করুন', 'PREPARE A FORMAL DRAFT')}</span>
+                                    <ArrowRight className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Verified District Advocate Recommendation */}
+                          {(streamingTurnId !== turn.id || streamingStage === 'done') && (turn.result.recommendedLawyers && turn.result.recommendedLawyers.length > 0 ? (
+                            <div className="pt-3 border-t border-border-light/70 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Scale className="h-4 w-4 text-[#9A6F32]" />
+                                  <span className="font-anek font-bold text-xs sm:text-sm text-primary-light">
+                                    {t('আপনার ঘটনার জন্য সুপারিশকৃত যাচাইকৃত আইনজীবী:', 'Verified Advocates Matched for Your Situation:')}
+                                  </span>
+                                </div>
+                                <Link
+                                  href="/lawyers"
+                                  className="text-xs text-[#9A6F32] font-bold hover:underline font-anek inline-flex items-center gap-1"
+                                >
+                                  <span>{t('সব দেখুন', 'View All')}</span>
+                                  <ArrowRight className="h-3 w-3" />
+                                </Link>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                {turn.result.recommendedLawyers.map((lawyer) => (
+                                  <div
+                                    key={lawyer.id}
+                                    className="p-3 sm:p-3.5 rounded-2xl border border-[#DDD3C1] dark:border-[#38312B] bg-[#FAF7F0] dark:bg-[#1C1815] hover:border-[#9A6F32]/60 transition-all flex flex-col justify-between space-y-2.5 shadow-2xs"
+                                  >
+                                    <div className="space-y-1">
+                                      <div className="flex items-center justify-between gap-1.5">
+                                        <span className="text-[10px] font-bold font-anek px-2 py-0.5 rounded-full bg-[#9A6F32]/15 text-[#9A6F32]">
+                                          {lawyer.district}
+                                        </span>
+                                        <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-0.5">
+                                          <CheckCircle2 className="h-3 w-3" />
+                                          <span>{t('সনদ যাচাইকৃত', 'Verified')}</span>
+                                        </span>
+                                      </div>
+
+                                      <h5 className="font-anek font-bold text-xs sm:text-sm text-[#231F1C] dark:text-[#F1EDE1] leading-snug">
+                                        {lang === 'bn' ? lawyer.nameBn : lawyer.nameEn}
+                                      </h5>
+                                      <p className="text-[11px] text-[#5A534A] dark:text-[#B5ADA3] font-hind truncate">
+                                        {lawyer.barCouncilId} • {lawyer.experienceYears}+ {t('বছর অভিজ্ঞতা', 'yrs exp')}
+                                      </p>
+                                      <p className="text-[11px] text-[#5A534A] dark:text-[#B5ADA3] font-hind line-clamp-1">
+                                        📍 {lang === 'bn' ? lawyer.chamberAddressBn : lawyer.chamberAddressEn}
+                                      </p>
+                                    </div>
+
+                                    <div className="pt-2 border-t border-border-light/60 flex items-center gap-2">
+                                      <a
+                                        href={`tel:${lawyer.phone}`}
+                                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl bg-[#9A6F32] text-white text-[11px] font-anek font-bold hover:bg-[#855D28] transition-colors shadow-2xs active-press"
+                                      >
+                                        <Phone className="h-3 w-3" />
+                                        <span>{t('সরাসরি কল', 'Call')} ({lawyer.phone})</span>
+                                      </a>
+                                      <Link
+                                        href={`/lawyers?district=${encodeURIComponent(lawyer.district)}`}
+                                        className="inline-flex items-center justify-center py-1.5 px-2.5 rounded-xl border border-border-light bg-surface-cardLight text-[11px] font-anek font-semibold text-secondary-light hover:text-[#9A6F32] transition-colors"
+                                      >
+                                        <span>{t('চেম্বার', 'Chamber')}</span>
+                                      </Link>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="pt-3 border-t border-border-light/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#9A6F32]/5 border border-[#9A6F32]/20">
+                              <div className="flex items-start sm:items-center gap-2.5">
+                                <Scale className="h-4 w-4 text-[#9A6F32] shrink-0 mt-0.5 sm:mt-0" />
+                                <div className="text-xs font-hind">
+                                  <span className="font-bold text-[#231F1C] dark:text-[#F1EDE1] block sm:inline mr-1.5 font-anek">
+                                    {t('আইনি প্রতিনিধিত্ব বা মামলা দায়ের:', 'Need Court Representation or Legal Filing?')}
+                                  </span>
+                                  <span className="text-[#5A534A] dark:text-[#B5ADA3]">
+                                    {t('আদালতে পদক্ষেপ নিতে আপনার জেলার যাচাইকৃত আইনজীবীর চেম্বারে সরাসরি যোগাযোগ করুন।', 'Connect directly with verified enrolled advocates in your district court.')}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <Link
+                                href="/lawyers"
+                                className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-[#9A6F32]/30 bg-surface-cardLight text-xs font-anek font-bold text-[#9A6F32] hover:bg-[#9A6F32] hover:text-white transition-all shadow-2xs"
+                              >
+                                <span>{t('আইনজীবী ডিরেক্টরি', 'Browse Lawyers')}</span>
+                                <ArrowRight className="h-3 w-3" />
+                              </Link>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* In-flight Animated Multi-Stage Legal Reasoning Indicator */}
+            {(status === 'submitted' || status === 'finding_sources') && (
+              <LegalReasoningIndicator />
+            )}
+
+            {/* Scroll Anchor */}
+            <div ref={chatEndRef} />
+          </div>
+        )}
+      </main>
+
+      {/* ============================================================
+          FIXED BOTTOM CHAT DOCK (Claude & ChatGPT Mobile App Style)
+          Floats cleanly above MobileBottomNav on mobile, docks at bottom on desktop.
+          ============================================================ */}
+      {isChatMode && (
+        <div className="fixed bottom-[calc(3.85rem+env(safe-area-inset-bottom,0px))] md:bottom-0 left-0 right-0 z-30 pointer-events-none pb-1 md:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 bg-gradient-to-t from-bg-light/95 via-bg-light/80 to-transparent">
+          <div className="max-w-3xl mx-auto px-2.5 sm:px-4 w-full pointer-events-auto">
+            {/* Docked Asking Card */}
+            <div className="rounded-2xl sm:rounded-3xl border border-border-light/90 bg-surface-cardLight/95 backdrop-blur-md shadow-xl transition-all focus-within:border-accent-light/80 focus-within:ring-2 focus-within:ring-accent-light/15 p-2 sm:p-2.5">
+              <div className="flex items-end gap-1.5 sm:gap-2">
+                {/* Quick Action: Start New Case */}
+                <button
+                  type="button"
+                  onClick={handleClearCase}
+                  className="h-9 w-9 rounded-xl flex items-center justify-center text-secondary-light hover:text-accent-light hover:bg-bg-light border border-border-light/70 transition-colors shrink-0 active:scale-95 cursor-pointer"
+                  title={t('নতুন আলোচনা শুরু করুন', 'Start New Case')}
+                  aria-label="New case"
+                >
+                  <Plus className="h-4 w-4 text-accent-light" />
+                </button>
+
+                {/* Auto-expanding Input Area */}
+                <div className="flex-1 relative flex items-center min-w-0">
+                  <textarea
+                    ref={bottomInputRef}
+                    rows={1}
+                    value={input}
+                    onInput={handleTextareaInput}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey && (typeof window === 'undefined' || window.innerWidth > 768)) {
+                        e.preventDefault();
+                        if (status !== 'submitted' && status !== 'finding_sources' && input.trim()) {
+                          handleAsk();
+                        }
+                      }
+                    }}
+                    placeholder={t(
+                      'অনুসরণমূলক প্রশ্ন বা তথ্য লিখুন...',
+                      'Write a follow-up question or inquiry...'
+                    )}
+                    className="w-full resize-none border-none bg-transparent px-2.5 py-1.5 text-base sm:text-sm text-primary-light placeholder:text-secondary-light/60 focus:outline-none min-h-[38px] max-h-[140px] leading-relaxed"
+                  />
+                </div>
+
+                {/* Prominent Send Button (Always visible on the right!) */}
+                <button
+                  type="button"
+                  disabled={status === 'submitted' || status === 'finding_sources' || !input.trim()}
+                  onClick={() => handleAsk()}
+                  className="h-9 w-9 sm:h-9.5 sm:w-9.5 rounded-xl flex items-center justify-center bg-accent-light text-white shadow-sm hover:opacity-95 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all shrink-0 cursor-pointer"
+                  title={t('পাঠান', 'Send')}
+                  aria-label="Send message"
+                >
+                  {status === 'submitted' || status === 'finding_sources' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowUp className="h-4 w-4 stroke-[2.5]" />
+                  )}
+                </button>
+              </div>
+
+              {/* Sleek Context & Quota Row */}
+              <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-border-light/40 px-1 text-[11px] text-secondary-light">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={fetchHistory}
+                    className="inline-flex items-center gap-1 font-hind text-secondary-light hover:text-accent-light transition-colors cursor-pointer text-[11px]"
+                  >
+                    <History className="h-3 w-3 text-accent-light" />
+                    <span>{t('ইতিহাস', 'History')}</span>
+                  </button>
+                  <span className="text-border-light/60">•</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (remainingQuestions <= 0) {
+                        setQuotaModalOpen(true);
+                      }
+                    }}
+                    className={`font-hind text-[10px] sm:text-[11px] transition-colors ${
+                      remainingQuestions <= 0
+                        ? 'text-amber-600 dark:text-amber-400 font-bold hover:underline cursor-pointer'
+                        : 'text-secondary-light/80'
+                    }`}
+                    title={remainingQuestions <= 0 ? t('কোটার বিস্তারিত দেখুন', 'View quota details') : undefined}
+                  >
+                    {t(`কোটা: ${formattedRemaining}/${formattedDailyLimit}`, `Quota: ${formattedRemaining}/${formattedDailyLimit} left`)}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="hidden md:inline text-[10px] text-secondary-light/60 font-hind">
+                    {t('Shift+Enter নতুন লাইনের জন্য', 'Shift+Enter for newline')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Discreet Disclaimer below dock (Desktop only) */}
+            <p className="text-center text-[9px] sm:text-[10px] text-secondary-light/60 font-hind mt-1.5 hidden md:block">
+              {t(
+                'MyLaws সরকারি গেজেট ও সংবিধিবদ্ধ আইন বিশ্লেষণ করে। আদালত বা আনুষ্ঠানিক ওকালতির জন্য মূল গেজেট যাচাই করুন।',
+                'MyLaws analyzes official statutory gazettes. Verify official legal gazettes for formal court proceedings.'
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Scroll To Bottom Button (Claude Style) */}
+      {showScrollBottom && (
+        <button
+          type="button"
+          onClick={scrollToBottom}
+          className="fixed bottom-28 sm:bottom-36 left-1/2 -translate-x-1/2 z-40 p-2.5 rounded-full bg-surface-cardLight/95 backdrop-blur-md border border-border-light shadow-lg hover:bg-surface-light hover:border-accent-light text-primary-light active-press transition-all cursor-pointer animate-in fade-in zoom-in-95 duration-150"
+          title={t('নিচে যান', 'Scroll to bottom')}
+        >
+          <ChevronDown className="h-4 w-4 text-accent-light" />
+        </button>
+      )}
+
+      {/* Desktop footer shown only before conversation starts */}
+      {!isChatMode && <div className="hidden md:block"><Footer /></div>}
+
+      {/* Cloudflare D1 User History Drawer */}
+      {historyOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/50 backdrop-blur-xs transition-opacity"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setHistoryOpen(false);
+          }}
+        >
+          <div className="h-full w-full max-w-md bg-surface-light border-l border-border-light shadow-2xl p-6 flex flex-col justify-between animate-in slide-in-from-right duration-200 overflow-hidden">
+            <div>
+              <div className="flex items-center justify-between border-b border-border-light pb-4">
+                <div className="flex items-center gap-2">
+                  <History className="h-5 w-5 text-accent-light" />
+                  <h3 className="font-cinzel text-sm font-bold tracking-wider text-primary-light">
+                    {t('পূর্ববর্তী আইনি অনুসন্ধান', 'QUESTION HISTORY')}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setHistoryOpen(false)}
+                  className="rounded-lg p-1 text-secondary-light hover:bg-bg-light transition-colors cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <p className="text-[11px] text-secondary-light mt-2 font-hind">
+                {t(
+                  'ক্লাউডফ্লেয়ার ডি১ ডাটাবেসে সংরক্ষিত আপনার সাম্প্রতিক প্রশ্ন ও এআই সমাধান',
+                  'Your recent queries and legal solutions preserved in Cloudflare D1'
+                )}
+              </p>
+
+              <div className="mt-4 space-y-3 max-h-[calc(100vh-160px)] overflow-y-auto pr-1">
+                {historyLoading ? (
+                  <div className="py-12 flex flex-col items-center justify-center text-secondary-light text-xs gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-accent-light" />
+                    <span>{t('তথ্য লোড হচ্ছে...', 'Loading your history...')}</span>
+                  </div>
+                ) : historyItems.length === 0 ? (
+                  <div className="py-12 text-center text-xs text-secondary-light font-hind">
+                    {t('এখনও কোনো প্রশ্ন রেকর্ড পাওয়া যায়নি।', 'No recorded questions yet.')}
+                  </div>
+                ) : (
+                  historyItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-border-light bg-bg-light/60 p-3.5 space-y-2 hover:border-accent-light/50 transition-all cursor-pointer"
+                      onClick={() => {
+                        setHistoryOpen(false);
+                        const cached = findStoredConversation(item.id, item.question);
+                        if (cached && cached.turns && cached.turns.length > 0) {
+                          setChatTurns(cached.turns);
+                          setActiveConversationId(cached.id);
+                          setStatus('ready');
+                          return;
+                        }
+                        handleAsk(item.question);
+                      }}
+                    >
+                      <div className="flex items-center justify-between text-[10px] text-secondary-light">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3 text-accent-light" />
+                          {new Date(item.createdAt).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                        <span className="uppercase text-[9px] px-1.5 py-0.5 rounded bg-accent-light/10 text-accent-light font-cinzel font-semibold">
+                          {item.engineProvenance}
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-primary-light line-clamp-2">
+                        {item.question}
+                      </p>
+                      {item.responseSnippet && (
+                        <p className="text-[11px] text-secondary-light line-clamp-2 italic font-hind">
+                          &ldquo;{item.responseSnippet}&rdquo;
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-border-light text-center">
+              <span className="text-[11px] text-secondary-light">
+                {t('যেকোনো প্রশ্নে ক্লিক করে সরাসরি প্রশ্ন চালু করুন', 'Click any question to open and run inquiry')}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Source Drawer */}
+      <SourceDrawer
+        sourceId={selectedSourceId}
+        onClose={() => setSelectedSourceId(null)}
+      />
+
+      {/* Office Modal */}
+      <OfficeModal
+        officeId={selectedOfficeId}
+        onClose={() => setSelectedOfficeId(null)}
+      />
+
+      {/* Quota Exceeded Pop-up Modal */}
+      <QuotaExceededModal
+        isOpen={quotaModalOpen}
+        onClose={() => setQuotaModalOpen(false)}
+        dailyLimit={dailyLimit}
+      />
+    </div>
+  );
+}
+
+export default function AskPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-bg-light" />}>
+      <AskContent />
+    </Suspense>
+  );
+}
