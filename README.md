@@ -99,7 +99,7 @@ Citizens frequently communicate in phonetic Romanized Bengali (*Banglish*). The 
 | **Authentication** | **Firebase Authentication (Client SDK)** | Integrated & Verified |
 | **PDF Generation** | HTML5 Canvas HarfBuzz Font Shaper + **jsPDF** | Integrated & Verified |
 | **Test Suite** | **Vitest 3.0** | Integrated & Verified |
-| **Mobile Client** | **Flutter 3.x (Dart)** with on-device GGUF / local SQLite | *In Active Development* |
+| **Mobile Client** | **Flutter 3.27+ (Dart)** with on-device GGUF / local SQLite FTS5 | Integrated & Verified (v1.0.0 APK Included) |
 
 ---
 
@@ -181,16 +181,21 @@ In full compliance with **Rule 9.1** of the CoU AI Hackathon Rulebook, the team 
 
 ---
 
-## 📱 Future Development: Offline-First Mobile Application
+## 📱 Mobile Application & Production Release APK
 
-The **MyLaws Flutter** application (`MyLaws Flutter/`) is actively under development to provide complete offline functionality for citizens in rural or low-connectivity areas.
+The **MyLaws Flutter** application (`MyLaws Flutter/`) and the standalone production APK (`MyLaws-Production-Release.apk`) are fully integrated into this repository to provide 100% offline functionality for citizens in rural or low-connectivity areas.
 
-Key upcoming capabilities:
-- **On-Device Small Language Models:** Local GGUF quantized models running entirely on modern smartphones without internet connectivity.
-- **Embedded SQLite Legal Database:** Complete offline access to the 49 Acts legal corpus and emergency hotlines.
-- **Offline PDF Generation:** On-device complaint generation and export.
+### Key Capabilities & Architecture:
+- **Offline Statutory Corpus:** 1,046 verified statutory provisions across 49 Bangladesh Acts pre-indexed with high-speed SQLite FTS5 search.
+- **On-Device Small Language Model & Local AI:** Quantized on-device model support running directly on Android smartphones without internet access.
+- **Draft Studio & Offline PDF Generation:** 10 standardized statutory templates (Police GD, DIFE, Domestic Violence, Family Court, Land Crime, SRA 9, Mutation, NI Act 138, Bail) with multi-page print-ready A4 PDF export.
+- **Ultra-low RAM Footprint:** Optimized to operate smoothly on low-end budget smartphones (< 45 MB RSS).
+- **Dual-Engine Privacy Architecture:** 100% offline local privacy mode alongside high-speed edge cloud sync.
 
-*Note:* In accordance with the project milestone schedule, the Flutter application codebase and release APK will be integrated into this repository in an upcoming release milestone before the hackathon finale.
+### Download & Inspection:
+- **Direct APK in Repository:** [`MyLaws-Production-Release.apk`](./MyLaws-Production-Release.apk)
+- **Web Download Showcase:** [https://mylaws-ai.vercel.app/download](https://mylaws-ai.vercel.app/download)
+- **Flutter Source Code:** [`MyLaws Flutter/`](./MyLaws%20Flutter/)
 
 ---
 
