@@ -1,0 +1,12 @@
+name = "mylaws-api"
+main = "index.js"
+compatibility_date = "2026-11-02"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mylaws-db"
+database_id = "04619018-0f31-49b8-a6b0-a975e13c414c"
+
+[vars]
+META_MODEL = "muse-spark-1.3"
+# Set MODEL_API_KEY securely via: npx wrangler secret put MODEL_API_KEY

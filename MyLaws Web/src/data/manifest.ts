@@ -25,28 +25,28 @@ export const legalPackManifest: PackState = {
 };
 
 export const androidReleaseManifest: AndroidReleaseManifest = {
-  version: '1.0.0-preview',
+  version: '1.0.0',
   versionCode: 1,
-  releaseDate: '2026-11-01',
+  releaseDate: '2026-11-24',
   status: 'available',
-  apkUrl: '/downloads/mylaws-v1-preview.apk',
-  fileSizeBytes: 10335330, // 10.3 MB
-  sha256Checksum: 'b7b95f475a836ed1d6ba39d4d7e116989126a588c99a8412cccbd3a6563f5445',
+  apkUrl: '/downloads/MyLaws-Production-Release.apk',
+  fileSizeBytes: 77519992, // 73.9 MB (~74 MB)
+  sha256Checksum: '5eff20c8eda2132a50294bf883bf9061527121669c24725734dc952e842f65d5',
   minimumAndroidVersion: 'Android 8.0 (API level 26)',
   recommendedRam: 'Ultra-lightweight: Runs smoothly on low-end devices with minimal RAM (1 GB / 2 GB), as well as standard 4 GB devices',
   testedDevices: [
-    'Pixel 6 / 7 / 8 (Android 14 & 15) - Full Jetpack Compose & Noto Bengali typography verified',
+    'Pixel 6 / 7 / 8 / 9 (Android 14 & 15) - Full Flutter 3.27+ engine & Noto Bengali typography verified',
     'Samsung Galaxy A14 / A04 & Budget Entry Devices (1 GB / 2 GB / 4 GB RAM) - Tested UI & PDF generation',
     'Xiaomi Redmi Go & Entry-Level Smartphones (1 GB / 2 GB RAM) - Tested low-memory FTS search',
     'Android Studio Emulator (API 26 to API 35, x86_64)',
   ],
   changeLog: [
-    'Phase 1: Full bilingual Jetpack Compose interface with Noto Bengali typography & zero layout shift',
+    'Official Production Release v1.0.0 with Flutter 3.27+ engine & Riverpod state architecture',
     'Action Checklist: Dynamic state persistence with undo capability and evidence preservation tips',
-    'Offline Corpus: 1,046 statutory provisions across 49 Bangladesh Acts pre-indexed with FTS-BM25 v2',
-    'Draft Studio: 10 standardized statutory legal templates (GD, DIFE, Domestic Violence, Family Court, Land Crime, SRA 9, Mutation, NI Act 138, Bail)',
-    'Ultra-low RAM optimization: Memory footprint < 45 MB RSS, smooth operation on 1 GB / 2 GB budget smartphones',
-    'Deterministic service contracts matching web backend API schema with zero cloud tracking',
+    'Offline Corpus: 1,046 statutory provisions across 49 Bangladesh Acts pre-indexed with SQLite FTS5',
+    'Draft Studio: 10 standardized statutory legal templates (Police GD, DIFE, Domestic Violence, Family Court, Land Crime, SRA 9, Mutation, NI Act 138, Bail)',
+    'Ultra-low RAM optimization: Memory footprint tuned for smooth operation on 1 GB / 2 GB budget smartphones',
+    'Dual-Engine Architecture: 100% offline local privacy mode + high-speed cloud edge sync',
     'Multi-page print-ready A4 PDF rendering with embedded Bengali font support',
   ],
 };

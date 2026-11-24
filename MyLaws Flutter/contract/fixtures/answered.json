@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "answerId": "01JBT000000000000000000001",
+  "caseId": "case_syn_001",
+  "turnId": "turn_syn_001",
+  "revision": 1,
+  "mode": "demo_fixture",
+  "engineProvenance": "demo_fixture",
+  "outcome": "answered",
+  "intent": "new_issue",
+  "status": "completed",
+  "questions": [],
+  "userFacts": [
+    {
+      "fieldId": "issue.category",
+      "value": "labour",
+      "status": "user_stated",
+      "provenance": "synthetic_fixture"
+    },
+    {
+      "fieldId": "wage.unpaidAmount",
+      "value": "12000",
+      "status": "user_confirmed",
+      "provenance": "synthetic_fixture"
+    }
+  ],
+  "checklist": [
+    {
+      "id": "step-1",
+      "text": "[SYNTHETIC SAMPLE] সংগৃহীত কাগজপত্র গুছিয়ে রাখুন",
+      "sourceIds": ["sample-provision-1"],
+      "officeId": "sample-office-1",
+      "condition": "কাগজপত্র থাকলে",
+      "completed": false,
+      "requiredDocuments": ["[SYNTHETIC SAMPLE] নিয়োগপত্র বা পরিচয়পত্র"],
+      "helpfulEvidence": ["[SYNTHETIC SAMPLE] বেতন লেনদেনের প্রমাণ"]
+    },
+    {
+      "id": "step-2",
+      "text": "[SYNTHETIC SAMPLE] সংশ্লিষ্ট দপ্তরে লিখিত আবেদন জমা দিন",
+      "sourceIds": ["sample-provision-1"],
+      "officeId": "sample-office-1",
+      "completed": false
+    }
+  ],
+  "explanation": [
+    {
+      "text": "[SYNTHETIC SAMPLE: not legal content] নিয়োগকারী নির্ধারিত সময়ের মধ্যে বকেয়া পরিশোধে বাধ্য।",
+      "sourceIds": ["sample-provision-1"]
+    }
+  ],
+  "limitations": [
+    "[SYNTHETIC SAMPLE] বকেয়া সংক্রান্ত পদক্ষেপের জন্য নির্দিষ্ট সময়সীমা প্রযোজ্য হতে পারে।"
+  ],
+  "sourcePackVersion": "bd-pilot-2026-10-27.1",
+  "allowedDraftOptions": ["dife"],
+  "problemSummary": {
+    "identifiedIssue": "বকেয়া মজুরি সমস্যা",
+    "understanding": "[SYNTHETIC SAMPLE] আপনি বকেয়া মজুরি আদায়ের বিষয়ে জানতে চেয়েছেন।"
+  },
+  "plainLanguageExplanation": {
+    "heading": "আইনি অধিকার ও সুরক্ষা",
+    "meaning": "[SYNTHETIC SAMPLE] আইন অনুযায়ী চুক্তি মোতাবেক কাজ করার পর পারিশ্রমিক পাওয়া কর্মীর অধিকার।",
+    "userRightsAndOptions": [
+      "[SYNTHETIC SAMPLE] লিখিতভাবে বকেয়া দাবি করা",
+      "[SYNTHETIC SAMPLE] উপযুক্ত পরিদর্শকের কাছে অভিযোগ দাখিল"
+    ],
+    "whatToDoNext": "[SYNTHETIC SAMPLE] প্রয়োজনীয় কাগজপত্র সংগ্রহ করে পরবর্তী পদক্ষেপে যান।"
+  },
+  "draftOffer": {
+    "prompt": "আপনি কি লিখিত অভিযোগের খসড়া তৈরি করতে চান?",
+    "documentType": "dife",
+    "documentTitle": "DIFE-তে লিখিত অভিযোগ — খসড়া",
+    "description": "[SYNTHETIC SAMPLE] আপনার তথ্য দিয়ে প্রস্তুতকৃত অভিযোগের খসড়া।"
+  },
+  "userQuota": {
+    "dailyLimit": 30,
+    "usedToday": 1,
+    "remaining": 29,
+    "canQuery": true,
+    "resetAt": "2026-11-03T00:00:00Z"
+  }
+}

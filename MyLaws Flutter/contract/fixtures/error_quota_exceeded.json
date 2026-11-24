@@ -1,0 +1,13 @@
+{
+  "error": "quota_exceeded",
+  "code": "DAILY_QUOTA_REACHED",
+  "message": "আপনার আজকের দৈনিক কোটা (৩০টি প্রশ্ন) পূর্ণ হয়েছে। দয়া করে আগামীকাল আবার চেষ্টা করুন।",
+  "messageEn": "Daily limit of 30 questions reached. Please try again tomorrow.",
+  "userQuota": {
+    "dailyLimit": 30,
+    "usedToday": 30,
+    "remaining": 0,
+    "canQuery": false,
+    "resetAt": "2026-11-03T00:00:00Z"
+  }
+}

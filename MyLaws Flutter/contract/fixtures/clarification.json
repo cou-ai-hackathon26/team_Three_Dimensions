@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "answerId": "01JBT000000000000000000002",
+  "caseId": "case_syn_002",
+  "turnId": "turn_syn_001",
+  "revision": 1,
+  "mode": "demo_fixture",
+  "engineProvenance": "demo_fixture",
+  "outcome": "clarification_needed",
+  "intent": "new_issue",
+  "status": "clarifying",
+  "questions": ["[SYNTHETIC SAMPLE] প্রতিষ্ঠানটি কি ইপিজেড (EPZ) এলাকায় অবস্থিত?"],
+  "clarificationQuestions": [
+    {
+      "id": "q-sector-1",
+      "fieldId": "employment.sector",
+      "question": {
+        "bn": "[SYNTHETIC SAMPLE] আপনার প্রতিষ্ঠানটি কি কোনো ইপিজেড (EPZ) এলাকায়?",
+        "en": "[SYNTHETIC SAMPLE] Is your organization located in an EPZ area?"
+      },
+      "importance": {
+        "bn": "ইপিজেড এলাকার জন্য আলাদা শ্রম আইনের বিধান প্রযোজ্য হয়।",
+        "en": "EPZ zones operate under separate labor regulations."
+      },
+      "answerType": "choice",
+      "options": [
+        { "value": "epz", "label": { "bn": "হ্যাঁ, ইপিজেড", "en": "Yes, EPZ" } },
+        { "value": "private", "label": { "bn": "না, সাধারণ বেসরকারি", "en": "No, Private" } },
+        { "value": "unknown", "label": { "bn": "জানা নেই", "en": "Not sure" } }
+      ]
+    }
+  ],
+  "userFacts": [
+    {
+      "fieldId": "issue.category",
+      "value": "labour",
+      "status": "user_stated",
+      "provenance": "synthetic_fixture"
+    }
+  ],
+  "checklist": [],
+  "explanation": [
+    {
+      "text": "[SYNTHETIC SAMPLE: not legal content] সঠিক আইনি ফোরাম নির্ধারণ করতে আপনার কর্মস্থলের ধরন জানা প্রয়োজন।",
+      "sourceIds": ["sample-provision-1"]
+    }
+  ],
+  "limitations": [
+    "[SYNTHETIC SAMPLE] বিস্তারিত তথ্য ছাড়া সুনির্দিষ্ট দিকনির্দেশনা সীমিত।"
+  ],
+  "sourcePackVersion": "bd-pilot-2026-10-27.1",
+  "allowedDraftOptions": [],
+  "userQuota": {
+    "dailyLimit": 30,
+    "usedToday": 1,
+    "remaining": 29,
+    "canQuery": true
+  }
+}

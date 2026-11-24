@@ -1,0 +1,6 @@
+{
+  "error": "rate_limited",
+  "code": "TOO_MANY_REQUESTS",
+  "message": "অল্প সময়ে অতিরিক্ত অনুরোধ পাঠানো হয়েছে। অনুগ্রহ করে কিছুক্ষণ অপেক্ষা করে আবার চেষ্টা করুন।",
+  "messageEn": "Too many requests. Please wait a minute before asking again."
+}

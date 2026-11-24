@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mylaws.bd/schemas/answer_request.schema.json",
+  "title": "AnswerRequest",
+  "type": "object",
+  "required": ["requestId", "originalMessage", "language"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "default": "1.0"
+    },
+    "requestId": {
+      "type": "string"
+    },
+    "idempotencyKey": {
+      "type": "string"
+    },
+    "caseId": {
+      "type": "string"
+    },
+    "turnId": {
+      "type": "string"
+    },
+    "parentRevision": {
+      "type": "integer",
+      "default": 0
+    },
+    "originalMessage": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 3000
+    },
+    "language": {
+      "type": "string",
+      "enum": ["bn", "en"]
+    },
+    "answerLanguage": {
+      "type": "string",
+      "enum": ["bn", "en"]
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["fieldId", "value"],
+        "properties": {
+          "fieldId": { "type": "string" },
+          "value": { "type": ["string", "number", "boolean", "null"] },
+          "valueType": {
+            "type": "string",
+            "enum": ["text", "amount_bdt", "integer", "date", "choice", "bool"]
+          },
+          "originalText": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["user_stated", "user_confirmed", "inferred", "corrected", "unknown", "declined"]
+          },
+          "provenance": { "type": "string" }
+        }
+      },
+      "maxItems": 50
+    },
+    "conversationHistory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": { "type": "string", "enum": ["user", "assistant"] },
+          "content": { "type": "string", "maxLength": 1000 }
+        }
+      },
+      "maxItems": 40
+    },
+    "location": { "type": ["string", "null"] },
+    "date": { "type": ["string", "null"] },
+    "recordHistory": { "type": "boolean" },
+    "requestedMode": {
+      "type": "string",
+      "enum": ["online", "demo_fixture", "offline_generated", "offline_guided"]
+    }
+  },
+  "additionalProperties": true
+}

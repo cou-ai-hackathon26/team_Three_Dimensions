@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mylaws.bd/schemas/answer_response.schema.json",
+  "title": "AnswerResponse",
+  "type": "object",
+  "required": [
+    "answerId",
+    "engineProvenance",
+    "status",
+    "checklist",
+    "explanation",
+    "limitations",
+    "sourcePackVersion"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "integer", "default": 1 },
+    "answerId": { "type": "string" },
+    "caseId": { "type": "string" },
+    "turnId": { "type": "string" },
+    "revision": { "type": "integer" },
+    "supersedesAnswerId": { "type": ["string", "null"] },
+    "mode": { "type": "string" },
+    "engineProvenance": {
+      "type": "string",
+      "enum": [
+        "online_meta",
+        "online_guided_fallback",
+        "offline_model",
+        "offline_guided",
+        "demo_fixture"
+      ]
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "answered",
+        "clarification_needed",
+        "insufficient_sources",
+        "unsupported_scope",
+        "emergency_referral"
+      ]
+    },
+    "intent": {
+      "type": "string",
+      "enum": [
+        "new_issue",
+        "clarification_answer",
+        "follow_up_explain",
+        "correction",
+        "add_fact",
+        "draft_request",
+        "thanks",
+        "language_change",
+        "other"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "submitted",
+        "clarifying",
+        "finding_sources",
+        "verifying",
+        "completed",
+        "cancelled",
+        "timed_out",
+        "unavailable",
+        "unsupported"
+      ]
+    },
+    "questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "clarificationQuestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "fieldId", "question", "importance"],
+        "properties": {
+          "id": { "type": "string" },
+          "fieldId": { "type": "string" },
+          "question": {
+            "type": "object",
+            "properties": { "en": { "type": "string" }, "bn": { "type": "string" } }
+          },
+          "importance": {
+            "type": "object",
+            "properties": { "en": { "type": "string" }, "bn": { "type": "string" } }
+          },
+          "answerType": { "type": "string", "enum": ["text", "choice", "date", "amount"] },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["value", "label"],
+              "properties": {
+                "value": { "type": "string" },
+                "label": {
+                  "type": "object",
+                  "properties": { "en": { "type": "string" }, "bn": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "userFacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["fieldId", "value"],
+        "properties": {
+          "fieldId": { "type": "string" },
+          "value": { "type": ["string", "number", "boolean", "null"] },
+          "status": { "type": "string" },
+          "provenance": { "type": "string" }
+        }
+      }
+    },
+    "checklist": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "text"],
+        "properties": {
+          "id": { "type": "string" },
+          "text": { "type": "string" },
+          "sourceIds": { "type": "array", "items": { "type": "string" } },
+          "officeId": { "type": ["string", "null"] },
+          "condition": { "type": "string" },
+          "completed": { "type": "boolean" },
+          "requiredDocuments": { "type": "array", "items": { "type": "string" } },
+          "helpfulEvidence": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "explanation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["text", "sourceIds"],
+        "properties": {
+          "text": { "type": "string" },
+          "sourceIds": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "sourcePackVersion": { "type": "string" },
+    "allowedDraftOptions": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["gd", "dife", "dncrp"] }
+    },
+    "problemSummary": {
+      "type": "object",
+      "properties": {
+        "identifiedIssue": { "type": "string" },
+        "understanding": { "type": "string" },
+        "additionalInfoNeeded": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "plainLanguageExplanation": {
+      "type": "object",
+      "properties": {
+        "heading": { "type": "string" },
+        "meaning": { "type": "string" },
+        "userRightsAndOptions": { "type": "array", "items": { "type": "string" } },
+        "whatToDoNext": { "type": "string" }
+      }
+    },
+    "draftOffer": {
+      "type": "object",
+      "properties": {
+        "prompt": { "type": "string" },
+        "documentType": { "type": "string", "enum": ["gd", "dife", "dncrp"] },
+        "documentTitle": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "followUpResponse": {
+      "type": "object",
+      "properties": {
+        "directAnswer": { "type": "string" },
+        "keyPoints": { "type": "array", "items": { "type": "string" } },
+        "suggestedNextStep": { "type": "string" },
+        "sourceIds": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "userQuota": {
+      "type": "object",
+      "properties": {
+        "dailyLimit": { "type": "integer" },
+        "usedToday": { "type": "integer" },
+        "remaining": { "type": "integer" },
+        "canQuery": { "type": "boolean" },
+        "resetAt": { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": true
+}

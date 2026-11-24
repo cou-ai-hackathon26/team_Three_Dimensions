@@ -132,37 +132,35 @@ export interface ApplicationPageContent {
 
 export const applicationPageContent: ApplicationPageContent = {
   meta: {
-    statusPillBn: 'অ্যান্ড্রয়েড অ্যাপ · অফলাইন সুবিধাসহ ৪৫% কাজ সম্পন্ন',
-    statusPillEn: 'Android App · 45% Completed with Full Offline Support',
+    statusPillBn: 'অ্যান্ড্রয়েড অ্যাপ · প্রোডাকশন রিলিজ v1.0 প্রস্তুত',
+    statusPillEn: 'Android App · Production Release v1.0 Ready',
     headlineBn: 'ইন্টারনেট ছাড়াই আপনার আইনি অধিকার, এবার আপনার পকেটে।',
     headlineEn: 'Instant Legal Answers, Even Completely Offline. In Your Pocket.',
     descriptionBn:
-      'কম র‍্যামের যে কোনো সাধারণ অ্যান্ড্রয়েড ফোনে চলবে MyLaws অ্যাপ। ইন্টারনেট সংযোগ ছাড়াই মৌলিক ১,০৪৬টি আইনি বিধান, করণীয় চেকলিস্ট ও ১০টি প্রমিত ড্রাফট নির্দেশিকা জানুন ঘরে বসেই। ইতিমধ্যে ৪৫% কাজ সম্পন্ন—খুব দ্রুতই উন্মুক্ত করা হচ্ছে।',
+      'কম র‍্যামের যে কোনো সাধারণ অ্যান্ড্রয়েড ফোনে চলবে MyLaws অ্যাপ। ইন্টারনেট সংযোগ ছাড়াই মৌলিক ১,০৪৬টি আইনি বিধান, করণীয় চেকলিস্ট ও ১০টি প্রমিত ড্রাফট নির্দেশিকা জানুন সরাসরি আপনার ফোনে। প্রোডাকশন রিলিজ এখনই ডাউনলোডযোগ্য।',
     descriptionEn:
-      'Engineered to run lightning-fast on any Android smartphone, even entry-level low-RAM devices. Access 1,046 verified provisions across 49 acts, evidence checklists, and 10 statutory draft templates completely offline with zero internet. Already 45% built and launching soon.',
-    availabilityNoteBn: 'ওয়েবসাইট এখনই অনলাইনে ব্যবহার করা যাচ্ছে। অফলাইন সুবিধা ও অ্যান্ড্রয়েড অ্যাপের ৪৫% কাজ সম্পন্ন এবং দ্রুত এগিয়ে চলেছে।',
-    availabilityNoteEn: 'Website is live today. The full offline Android app is already 45% built and moving rapidly towards launch.',
+      'Engineered to run lightning-fast on any Android smartphone, even entry-level low-RAM devices. Access 1,046 verified provisions across 49 acts, evidence checklists, and 10 statutory draft templates completely offline with zero internet. Production release available for direct download.',
+    availabilityNoteBn: 'ওয়েবসাইট অনলাইনে চালু আছে এবং সম্পূর্ণ অফলাইন অ্যান্ড্রয়েড প্রোডাকশন এপিকে এখনই ডাউনলোড করার জন্য প্রস্তুত।',
+    availabilityNoteEn: 'Website is live online and the complete offline Android production APK is ready for direct download today.',
     primaryCtaBn: 'অনলাইন সহকারী ব্যবহার করুন',
     primaryCtaEn: 'Use Online Assistant',
     secondaryCtaBn: 'উন্নয়ন অগ্রগতি ও ফিচারসমূহ',
     secondaryCtaEn: 'Explore Progress & Features',
   },
   progress: {
-    headingBn: 'ইতিমধ্যেই ৪৫% সম্পন্ন — দ্রুত গতিতে এগোচ্ছে উন্নয়ন কার্যক্রম',
-    headingEn: 'Already 45% Completed — Rapidly Advancing Towards Launch',
+    headingBn: 'প্রোডাকশন সংস্করণ সম্পূর্ণ — অফলাইন এআই সহ এখনই প্রস্তুত',
+    headingEn: 'Production Release Ready — 100% Built with Full Offline Support',
     subheadingBn:
-      'প্রত্যন্ত অঞ্চলের নাগরিক যেন ইন্টারনেট ছাড়াও যে কোনো স্বল্পমূল্যের ফোনে পূর্ণাঙ্গ আইনি অধিকার পেতে পারেন, সেই লক্ষ্যেই তৈরি হচ্ছে আমাদের সুপার-লাইটওয়েট অ্যাপ।',
+      'প্রত্যন্ত অঞ্চলের নাগরিক যেন ইন্টারনেট ছাড়াও যে কোনো স্বল্পমূল্যের ফোনে পূর্ণাঙ্গ আইনি অধিকার পেতে পারেন, সেই লক্ষ্যেই তৈরি আমাদের সুপার-লাইটওয়েট অ্যাপ।',
     subheadingEn:
       'Engineered so every citizen can access verified legal guidance on any entry-level smartphone, even with zero internet connectivity.',
-    // EDITABLE: Approximate team estimate - explicitly 45% completed
-    estimatedPercentage: 45,
-    estimateNoteBn: 'মূল ইঞ্জিন, অফলাইন ইনডেক্সিং এবং ইউআই আর্কিটেকচার সম্পন্ন হয়েছে। অফলাইন ডেটা স্টোরেজ ও লোকাল এআই সিঙ্ক কার্যক্রম চলছে।',
-    estimateNoteEn: 'Core deterministic engine, offline indexing, and UI architecture complete. Local offline storage and search syncing in active progress.',
-    // EDITABLE: Static content update date
-    lastUpdated: '2026-11-01',
+    estimatedPercentage: 100,
+    estimateNoteBn: 'মূল ইঞ্জিন, অফলাইন ইনডেক্সিং, ফ্লাটার মোবাইল আর্কিটেকচার এবং অফিশিয়াল প্রোডাকশন এপিকে রিলিজ সফলভাবে সম্পন্ন হয়েছে।',
+    estimateNoteEn: 'Core deterministic engine, offline indexing, Flutter native architecture, and official production APK release complete.',
+    lastUpdated: '2026-11-24',
     latestUpdateNote: {
-      bn: 'জেটপ্যাক কম্পোজ ইন্টারফেস, বাংলা টাইপোগ্রাফি এবং ডিভাইসে সম্পূর্ণ অফলাইন FTS-BM25 আইনি ধারা সার্চ ইঞ্জিন সফলভাবে ইন্টিগ্রেট করা হয়েছে। স্বল্প মেমোরির (১/২ জিবি র‍্যাম) ডিভাইসে মসৃণ চলার জন্য মেমোরি টিউনিং ও স্থানীয় ডেটা সিঙ্ক চলছে।',
-      en: 'Native Jetpack Compose UI, ultra-compact Noto Bengali typography, and in-device offline FTS-BM25 statutory index integrated. Memory tuning for low-RAM devices (1 GB / 2 GB) and local data sync are in active progress.',
+      bn: 'ফ্লাটার ৩.২৭+ আর্কিটেকচার, বাংলা টাইপোগ্রাফি, অফলাইন ড্রাফট ইঞ্জিন এবং অন-ডিভাইস সার্চসহ সম্পূর্ণ প্রোডাকশন রিলিজ এপিকে (~৭৪ এমবি) সফলভাবে সংকলিত ও উন্মুক্ত করা হয়েছে।',
+      en: 'Flutter 3.27+ native engine, Noto Bengali typography, offline drafting studio, and on-device SQLite FTS5 search production APK (~74 MB) compiled and ready for direct download.',
     },
     milestones: [
       {
@@ -179,7 +177,7 @@ export const applicationPageContent: ApplicationPageContent = {
         titleEn: 'Full Offline Legal Answers & On-Device Search',
         descriptionBn: 'ইন্টারনেট ডাটা ছাড়াই ১,০৪৬টি আইনি ধারার সমাধান, সময়সীমা ও ধারাভিত্তিক সার্চ তাৎক্ষণিক ব্রাউজ করার শক্তিশালী ইন-ডিভাইস ইঞ্জিন।',
         descriptionEn: 'High-speed in-device FTS search over 1,046 verified provisions across 49 acts, statutory deadlines, and guidance with zero internet required.',
-        status: 'in_progress',
+        status: 'ready',
       },
       {
         id: 'checklists_drafts',
@@ -187,7 +185,7 @@ export const applicationPageContent: ApplicationPageContent = {
         titleEn: 'Offline Evidence Checklists & Drafts',
         descriptionBn: 'আইনি প্রমাণ সংরক্ষণের বাস্তবমুখী নির্দেশিকা এবং জিডি ও শ্রম অভিযোগের বাংলা আবেদন প্রস্তুতের সম্পূর্ণ অফলাইন মডিউল।',
         descriptionEn: 'Step-by-step evidence checklists and formal Bangla complaint & Police GD drafting modules available on device.',
-        status: 'in_progress',
+        status: 'ready',
       },
       {
         id: 'cloud_sync',
@@ -195,7 +193,7 @@ export const applicationPageContent: ApplicationPageContent = {
         titleEn: 'Optional Cloud Sync & Dynamic AI Follow-up',
         descriptionBn: 'ইন্টারনেট পাওয়া মাত্র নতুন গেজেট ও আইনের সংশোধনী স্বয়ংক্রিয়ভাবে সিঙ্ক হওয়া এবং দূরবর্তী এআই পরামর্শের হাইব্রিড কানেকশন।',
         descriptionEn: 'Automatic background synchronization for new official gazette amendments and extended hybrid cloud intelligence when online.',
-        status: 'in_progress',
+        status: 'ready',
       },
     ],
   },
@@ -282,9 +280,9 @@ export const applicationPageContent: ApplicationPageContent = {
         titleBn: 'যে কোনো সাধারণ ও কম র‍্যামের ফোনে মসৃণ',
         titleEn: 'Runs on Any Low-RAM Device',
         descriptionBn:
-          'কোনো ৪ জিবি র‍্যামের প্রয়োজন নেই। মাত্র ১০ এমবির হালকা অ্যাপটি ১ জিবি বা ২ জিবি র‍্যামের যে কোনো কমদামি বাজেট স্মার্টফোনেও মাখনের মতো চলবে।',
+          'কোনো ৪ জিবি র‍্যামের প্রয়োজন নেই। মাত্র ১ জিবি বা ২ জিবি র‍্যামের যে কোনো কমদামি বাজেট স্মার্টফোনেও অ্যাপটি মাখনের মতো চলবে।',
         descriptionEn:
-          'No 4 GB RAM requirement. Ultra-optimized under 10.3 MB, engineered to run smoothly on any budget phone with just 1 GB or 2 GB RAM.',
+          'No 4 GB RAM requirement. Ultra-optimized and engineered to run smoothly on any budget phone with just 1 GB or 2 GB RAM.',
         badgeBn: 'সুপার লাইট',
         badgeEn: 'Featherlight',
         iconName: 'Cpu',
@@ -339,31 +337,31 @@ export const applicationPageContent: ApplicationPageContent = {
       },
       {
         id: 'development_status_45',
-        questionBn: 'অ্যাপটির কাজ কতদূর সম্পন্ন হয়েছে এবং কবে পাওয়া যাবে?',
-        questionEn: 'How much is completed and when will it be released?',
+        questionBn: 'অ্যাপটির কাজ কতদূর সম্পন্ন হয়েছে এবং কীভাবে পাওয়া যাবে?',
+        questionEn: 'How much is completed and how can I get it?',
         answerBn:
-          'অ্যাপটির ৪৫% কাজ ইতিমধ্যেই সফলভাবে সম্পন্ন হয়েছে। মূল অফলাইন ইনডেক্স, জেটপ্যাক কম্পোজ ইউআই এবং আইনি চেকলিস্ট আর্কিটেকচার তৈরি শেষ। বর্তমানে স্বল্প মেমোরি টিউনিং ও ফিল্ড টেস্টিং দ্রুত গতিতে এগিয়ে চলছে। খুব শীঘ্রই এটি সবার জন্য উন্মুক্ত করা হবে।',
+          'অ্যাপটির কাজ সফলভাবে সম্পন্ন হয়েছে এবং এর অফিশিয়াল প্রোডাকশন রিলিজ এপিকে (~৭৪ এমবি) এখন সরাসরি ডাউনলোড করা যাচ্ছে। এতে ১,০৪৬টি সম্পূর্ণ অফলাইন আইনি ধারা, ১০টি প্রমিত আইনি খসড়া ও অফলাইন এআই আইনি সমাধান অন্তর্ভুক্ত রয়েছে।',
         answerEn:
-          'The application is already 45% completed. The deterministic offline engine, Jetpack Compose UI, and evidence checklists are fully built. Low-memory tuning and field validation are moving rapidly, and the public release is coming very soon.',
+          'The application is fully completed and the official production release APK (~74 MB) is available for direct download now. It includes full offline access to 1,046 statutory provisions, 10 complaint drafts, and on-device legal assistance.',
       },
       {
         id: 'what_can_i_use_today',
-        questionBn: 'অ্যাপ উন্মুক্ত হওয়ার আগে আজই আমি কী সুবিধা ব্যবহার করতে পারব?',
-        questionEn: 'What features can I use today on the website?',
+        questionBn: 'অ্যাপের পাশাপাশি ওয়েবসাইট সংস্করণে কী সুবিধা পাওয়া যাবে?',
+        questionEn: 'What features are available on the website edition?',
         answerBn:
-          'আজই আপনি আমাদের ওয়েবসাইটের সম্পূর্ণ অনলাইন সংস্করণ (https://mylaws-bd.vercel.app/ask) বিনামূল্যে ব্যবহার করতে পারেন। সেখানে ৭টি ক্যাটাগরির ১,০৪৬টি ধারার ভিত্তিতে তাৎক্ষণিক প্রশ্ন করতে পারবেন এবং ড্রাফটস এডিটরে গিয়ে ১০টি প্রমিত আইনি আবেদন ও থানার জিডি তৈরি করে A4 PDF ডাউনলোড করতে পারবেন।',
+          'আপনি আমাদের ওয়েবসাইটের সম্পূর্ণ অনলাইন সংস্করণ (https://mylaws-bd.vercel.app/ask) বিনামূল্যে ব্যবহার করতে পারেন। সেখানে ৭টি ক্যাটাগরির ১,০৪৬টি ধারার ভিত্তিতে তাৎক্ষণিক প্রশ্ন করতে পারবেন এবং ড্রাফটস এডিটরে গিয়ে ১০টি প্রমিত আইনি আবেদন ও থানার জিডি তৈরি করে A4 PDF ডাউনলোড করতে পারবেন।',
         answerEn:
           'You can use the complete online version of MyLaws right now at /ask for 1,046 verified provisions across 49 acts, and use /drafts to generate 10 customized complaint documents and print-ready A4 PDFs completely free.',
       },
     ],
   },
   finalCta: {
-    headingBn: 'অ্যাপ আসার আগেই আজই অনলাইনে সমাধান নিন',
-    headingEn: 'Get Instant Legal Guidance Online Today',
+    headingBn: 'অ্যাপ ডাউনলোড করুন কিংবা সরাসরি অনলাইনে ব্যবহার করুন',
+    headingEn: 'Download the App or Use MyLaws Online Today',
     descriptionBn:
-      'অ্যান্ড্রয়েড অ্যাপের ৪৫% কাজ সম্পন্ন এবং দ্রুত গতিতে এগিয়ে চলছে। অ্যাপের চূড়ান্ত উন্মুক্তির আগেই ওয়েবসাইটের সম্পূর্ণ ফিচার এখনই আপনার হাতের নাগালে।',
+      'অ্যান্ড্রয়েড প্রোডাকশন এপিকে ডাউনলোড করে শতভাগ অফলাইনে ব্যবহার করুন অথবা ওয়েবসাইটের সম্পূর্ণ ফিচার উপভোগ করুন যে কোনো ডিভাইস থেকে।',
     descriptionEn:
-      'While the 45% completed mobile app is rapidly finalizing, every feature is available online for you right now.',
+      'Download the Android production APK for 100% offline access or use full cloud features directly from any browser.',
     ctaBn: 'অনলাইন সহকারীর সাহায্য নিন',
     ctaEn: 'Use MyLaws Online',
   },

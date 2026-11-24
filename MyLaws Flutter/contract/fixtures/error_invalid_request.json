@@ -1,0 +1,6 @@
+{
+  "error": "invalid_request",
+  "code": "BAD_REQUEST",
+  "message": "অনুরোধটি সঠিক কাঠামোর নয়। অনুগ্রহ করে তথ্যের ফরম্যাট পরীক্ষা করুন।",
+  "messageEn": "Invalid request: payload validation failed."
+}

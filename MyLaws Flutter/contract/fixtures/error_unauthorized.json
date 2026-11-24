@@ -1,0 +1,6 @@
+{
+  "error": "unauthorized",
+  "code": "AUTH_REQUIRED",
+  "message": "আইনি পরামর্শ ও এআই সহকারী ব্যবহারের জন্য অনুগ্রহ করে সাইন ইন করুন।",
+  "messageEn": "Please sign in to access verified legal guidance."
+}

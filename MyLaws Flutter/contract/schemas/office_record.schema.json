@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mylaws.bd/schemas/office_record.schema.json",
+  "title": "OfficeRecord",
+  "type": "object",
+  "required": ["id", "name", "status"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "address": { "type": ["string", "null"] },
+    "phone": { "type": ["string", "null"] },
+    "territory": { "type": ["string", "null"] },
+    "issueScope": { "type": ["string", "null"] },
+    "sourceIds": { "type": "array", "items": { "type": "string" } },
+    "verificationDate": { "type": ["string", "null"] },
+    "status": {
+      "type": "string",
+      "enum": ["illustrative", "authoritative", "needs_verification"]
+    }
+  },
+  "additionalProperties": true
+}

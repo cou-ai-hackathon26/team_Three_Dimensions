@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "answerId": "01JBT000000000000000000003",
+  "caseId": "case_syn_001",
+  "turnId": "turn_syn_002",
+  "revision": 2,
+  "supersedesAnswerId": "01JBT000000000000000000001",
+  "mode": "demo_fixture",
+  "engineProvenance": "demo_fixture",
+  "outcome": "answered",
+  "intent": "correction",
+  "status": "completed",
+  "questions": [],
+  "userFacts": [
+    {
+      "fieldId": "issue.category",
+      "value": "labour",
+      "status": "user_stated",
+      "provenance": "synthetic_fixture"
+    },
+    {
+      "fieldId": "wage.unpaidAmount",
+      "value": "15000",
+      "status": "user_confirmed",
+      "provenance": "user_correction"
+    }
+  ],
+  "checklist": [
+    {
+      "id": "step-1",
+      "text": "[SYNTHETIC SAMPLE] সংশোধিত হিসাব অনুযায়ী কাগজপত্র প্রস্তুত করুন (১৫,০০০ টাকা)",
+      "sourceIds": ["sample-provision-1"],
+      "officeId": "sample-office-1",
+      "completed": false,
+      "requiredDocuments": ["[SYNTHETIC SAMPLE] ব্যাংক স্টেটমেন্ট বা স্লিপ"]
+    }
+  ],
+  "explanation": [
+    {
+      "text": "[SYNTHETIC SAMPLE: not legal content] আপনার সংশোধিত বকেয়া টাকার পরিমাণ ১৫,০০০ টাকা হিসাবে আপডেট করা হয়েছে।",
+      "sourceIds": ["sample-provision-1"]
+    }
+  ],
+  "limitations": [
+    "[SYNTHETIC SAMPLE] পূর্ববর্তী গণনাগুলো এই সংশোধনের দ্বারা প্রতিস্থাপিত হয়েছে।"
+  ],
+  "sourcePackVersion": "bd-pilot-2026-10-27.1",
+  "allowedDraftOptions": ["dife"],
+  "followUpResponse": {
+    "directAnswer": "[SYNTHETIC SAMPLE] আপনার সংশোধিত টাকার অঙ্ক (১৫,০০০ টাকা) গ্রহণ করা হয়েছে এবং খসড়া হালনাগাদ করা হয়েছে।"
+  },
+  "userQuota": {
+    "dailyLimit": 30,
+    "usedToday": 2,
+    "remaining": 28,
+    "canQuery": true
+  }
+}

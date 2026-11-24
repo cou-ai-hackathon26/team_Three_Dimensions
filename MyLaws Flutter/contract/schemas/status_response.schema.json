@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mylaws.bd/schemas/status_response.schema.json",
+  "title": "StatusResponse",
+  "type": "object",
+  "required": ["status", "legalPackVersion", "corpusVersion", "provisionsCount"],
+  "properties": {
+    "status": { "type": "string" },
+    "mode": { "type": "string" },
+    "keyConfigured": { "type": "boolean" },
+    "model": { "type": "string" },
+    "legalPackVersion": { "type": "string" },
+    "corpusVersion": { "type": "string" },
+    "provisionsCount": { "type": "integer" },
+    "verifiedDate": { "type": "string" }
+  },
+  "additionalProperties": true
+}
