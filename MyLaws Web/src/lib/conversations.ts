@@ -145,3 +145,11 @@ export function deleteStoredConversation(id: string): void {
     }
   } catch {}
 }
+
+export function clearAllStoredConversations(): void {
+  if (!isClient()) return;
+  try {
+    localStorage.removeItem(STORAGE_KEY_CONVERSATIONS);
+    localStorage.removeItem(STORAGE_KEY_ACTIVE_ID);
+  } catch {}
+}

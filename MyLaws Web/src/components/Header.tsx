@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 
 import type { SavedUserQuery } from '@/lib/userDb';
+import { getStoredConversations } from '@/lib/conversations';
 
 export function Header() {
   const { lang, setLang, t } = useApp();
@@ -37,6 +38,7 @@ export function Header() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [recentQueries, setRecentQueries] = useState<SavedUserQuery[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [storedConversationCount, setStoredConversationCount] = useState(0);
   const [mounted, setMounted] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -44,7 +46,18 @@ export function Header() {
 
   useEffect(() => {
     setMounted(true);
+    try {
+      setStoredConversationCount(getStoredConversations().length);
+    } catch {}
   }, []);
+
+  useEffect(() => {
+    if (userDropdownOpen || mobileOpen) {
+      try {
+        setStoredConversationCount(getStoredConversations().length);
+      } catch {}
+    }
+  }, [userDropdownOpen, mobileOpen]);
 
   // Close desktop user dropdown when clicking outside
   useEffect(() => {
@@ -173,24 +186,27 @@ export function Header() {
           {/* 1. Offline App Download */}
           <Link
             href="/download"
-            className="group flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border-light bg-surface-light text-secondary-light hover:border-accent-light hover:text-primary-light transition-all shadow-2xs font-cinzel font-semibold tracking-wider uppercase"
+            className="glassy-action-btn glassy-delay group flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-cinzel font-bold tracking-wider uppercase transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-95"
             title={t('অ্যান্ড্রয়েড অফলাইন অ্যাপ্লিকেশন (v১.০ বেটা)', 'Download Android App (v1.0 Beta)')}
           >
-            <Smartphone className="h-3.5 w-3.5 text-[#9A6F32] group-hover:scale-110 transition-transform" />
-            <span>{t('GET APP', 'GET APP')}</span>
-            <span className="ml-1 rounded px-1.5 py-0.5 text-[9px] font-bold tracking-tight bg-accent-light/15 text-accent-light border border-accent-light/30">
-              BETA
+            <span className="glassy-shimmer-beam" aria-hidden="true" />
+            <span className="relative z-10 flex items-center gap-1.5">
+              <Smartphone className="h-3.5 w-3.5 text-zinc-800 group-hover:scale-110 transition-transform shrink-0" />
+              <span className="text-zinc-900 font-bold">{t('GET APP', 'GET APP')}</span>
+              <span className="ml-1 rounded px-1.5 py-0.5 text-[9px] font-bold tracking-tight bg-black text-white shadow-2xs">
+                BETA
+              </span>
             </span>
           </Link>
 
           {/* 2. Language Switch */}
           <button
             onClick={() => setLang(lang === 'bn' ? 'en' : 'bn')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border-light bg-surface-light text-secondary-light hover:border-accent-light hover:text-primary-light transition-all shadow-2xs cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-zinc-200/80 bg-white/70 hover:bg-white text-zinc-700 hover:border-zinc-400 hover:text-black transition-all shadow-2xs cursor-pointer"
             title={lang === 'bn' ? 'Switch to English' : 'বাংলা সংস্করণে যান'}
             aria-label={lang === 'bn' ? 'Switch to English' : 'Switch to Bangla'}
           >
-            <Globe className="h-3.5 w-3.5 text-[#9A6F32]" />
+            <Globe className="h-3.5 w-3.5 text-zinc-700" />
             <span className={lang === 'bn' ? 'font-cinzel text-xs font-semibold tracking-wider' : 'font-hind font-semibold text-xs'}>
               {lang === 'bn' ? 'ENGLISH' : 'বাংলা'}
             </span>
@@ -199,10 +215,10 @@ export function Header() {
           {/* 3. Signature Bracketed Action: — ASK MYLAWS — */}
           <Link
             href="/ask"
-            className="bracket-btn glassy-action-btn text-primary-light hover:text-accent-light px-3.5 py-1.5 transition-all cursor-pointer"
+            className="bracket-btn glassy-action-btn text-primary-light hover:text-black px-3.5 py-1.5 transition-all cursor-pointer"
           >
             <span className="glassy-shimmer-beam" aria-hidden="true" />
-            <span className="relative z-10 flex items-center gap-1.5 font-cinzel text-xs font-bold tracking-wider">
+            <span className="relative z-10 flex items-center gap-1.5 font-cinzel text-xs font-bold tracking-wider text-primary-light">
               <span>—</span>
               <span>{t('প্রশ্ন করুন', 'ASK MYLAWS')}</span>
               <span>—</span>
@@ -270,12 +286,35 @@ export function Header() {
                         </div>
 
                         <div className="space-y-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setUserDropdownOpen(false);
+                              if (pathname === '/ask') {
+                                window.dispatchEvent(new CustomEvent('mylaws:open-history'));
+                              } else {
+                                router.push('/ask?openHistory=1');
+                              }
+                            }}
+                            className="w-full flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-primary-light hover:bg-bg-light transition-colors cursor-pointer group"
+                          >
+                            <div className="flex items-center gap-2">
+                              <History className="h-3.5 w-3.5 text-zinc-700 group-hover:text-black" />
+                              <span className="font-medium">{t('কথোপকথনের ইতিহাস', 'Conversation History')}</span>
+                            </div>
+                            {storedConversationCount > 0 && (
+                              <span className="rounded-full bg-zinc-200/80 px-1.5 py-0.2 text-[10px] font-mono font-bold text-zinc-800">
+                                {storedConversationCount}
+                              </span>
+                            )}
+                          </button>
+
                           <Link
                             href="/ask"
                             onClick={() => setUserDropdownOpen(false)}
                             className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-primary-light hover:bg-bg-light transition-colors"
                           >
-                            <Sparkles className="h-3.5 w-3.5 text-accent-light" />
+                            <Sparkles className="h-3.5 w-3.5 text-zinc-700" />
                             <span>{t('প্রশ্ন জিজ্ঞাসা করুন', 'Ask a Question')}</span>
                           </Link>
                           <button
@@ -296,10 +335,10 @@ export function Header() {
               ) : (
                 <Link
                   href="/login"
-                  className="bracket-btn glassy-action-btn glassy-delay text-primary-light hover:text-accent-light px-3.5 py-1.5 transition-all"
+                  className="bracket-btn glassy-action-btn glassy-delay text-primary-light hover:text-black px-3.5 py-1.5 transition-all"
                 >
                   <span className="glassy-shimmer-beam" aria-hidden="true" />
-                  <span className="relative z-10 flex items-center gap-1.5">
+                  <span className="relative z-10 flex items-center gap-1.5 text-primary-light">
                     <span>—</span>
                     <span className={lang === 'bn' ? 'font-hind font-bold text-xs' : 'font-cinzel text-xs font-bold'}>
                       {t('লগইন', 'LOGIN')}
@@ -444,13 +483,20 @@ export function Header() {
                     <span className="text-[10px] font-cinzel font-bold tracking-widest text-secondary-light/70 uppercase">
                       {t('সাম্প্রতিক প্রশ্ন', 'RECENT QUESTIONS')}
                     </span>
-                    <Link
-                      href="/ask"
-                      onClick={() => setMobileOpen(false)}
-                      className="text-[10px] text-accent-light font-hind font-semibold hover:underline"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        if (pathname === '/ask') {
+                          window.dispatchEvent(new CustomEvent('mylaws:open-history'));
+                        } else {
+                          router.push('/ask?openHistory=1');
+                        }
+                      }}
+                      className="text-[10px] text-zinc-800 font-hind font-semibold hover:underline cursor-pointer"
                     >
                       {t('সব দেখুন', 'View All')}
-                    </Link>
+                    </button>
                   </div>
 
                   <div className="space-y-1">
