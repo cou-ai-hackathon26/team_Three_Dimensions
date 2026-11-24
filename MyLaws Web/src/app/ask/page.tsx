@@ -32,8 +32,13 @@ import {
   saveConversation,
   findStoredConversation,
   getActiveConversation,
+  getActiveConversationId,
   setActiveConversationId,
   clearActiveConversationSession,
+  getStoredConversations,
+  deleteStoredConversation,
+  clearAllStoredConversations,
+  type StoredConversation,
 } from '@/lib/conversations';
 import {
   Send,
@@ -67,6 +72,15 @@ import {
   UserCheck,
   Copy,
   Check,
+  Laptop,
+  Cloud,
+  Trash2,
+  CheckSquare,
+  Square,
+  ShieldAlert,
+  ShieldCheck,
+  Trash,
+  AlertTriangle,
 } from 'lucide-react';
 
 function getSourceLabel(sid: string, currentLang: 'en' | 'bn'): string {
@@ -105,10 +119,17 @@ function AskContent() {
   const [streamingTurnId, setStreamingTurnId] = useState<string | null>(null);
   const [streamingStage, setStreamingStage] = useState<'understanding' | 'meaning' | 'done'>('done');
 
-  // History state
+  // History state & privacy deletion
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyTab, setHistoryTab] = useState<'local' | 'cloud'>('local');
+  const [localConversations, setLocalConversations] = useState<StoredConversation[]>([]);
   const [historyItems, setHistoryItems] = useState<SavedUserQuery[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirmWipe, setShowConfirmWipe] = useState(false);
+  const [privacyMessage, setPrivacyMessage] = useState<string | null>(null);
   const [quotaModalOpen, setQuotaModalOpen] = useState(false);
 
   // Clarification answers keyed by fieldId
@@ -331,29 +352,180 @@ function AskContent() {
     }
   }, [chatTurns, status]);
 
-  // Load user query history from Cloudflare D1
+  // Load user query history (Local Device Conversations & Cloudflare D1)
   const fetchHistory = async () => {
-    if (!user) {
-      openAuthModal('login', t('পূর্ববর্তী প্রশ্ন দেখতে সাইন ইন করুন।', 'Please sign in to view your question history.'));
-      return;
-    }
-    setHistoryLoading(true);
-    setHistoryOpen(true);
+    // 1. Always load local conversations immediately from browser localStorage
     try {
-      const token = await getIdToken();
-      if (!token) return;
-      const res = await fetch('/api/user/history', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setHistoryItems(data.history || []);
+      const localConvs = getStoredConversations();
+      setLocalConversations(localConvs);
+    } catch {}
+    setHistoryOpen(true);
+
+    // 2. If user is signed in, also sync with Cloudflare D1 in background
+    if (user) {
+      setHistoryLoading(true);
+      try {
+        const token = await getIdToken();
+        if (token) {
+          const res = await fetch('/api/user/history', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setHistoryItems(data.history || []);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load D1 history:', err);
+      } finally {
+        setHistoryLoading(false);
       }
-    } catch (err) {
-      console.warn('Failed to load history:', err);
-    } finally {
-      setHistoryLoading(false);
     }
+  };
+
+  // Listen for global custom event to open history drawer from Header or anywhere
+  useEffect(() => {
+    const handleOpenHistoryEvent = () => {
+      fetchHistory();
+    };
+    window.addEventListener('mylaws:open-history', handleOpenHistoryEvent);
+    return () => {
+      window.removeEventListener('mylaws:open-history', handleOpenHistoryEvent);
+    };
+  }, [user]);
+
+  // Toggle selection for a conversation ID
+  const handleToggleSelectId = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  // Select all or deselect all
+  const handleSelectAll = () => {
+    if (historyTab === 'local') {
+      const allLocalIds = localConversations.map((c) => c.id);
+      if (selectedIds.length === allLocalIds.length) {
+        setSelectedIds([]);
+      } else {
+        setSelectedIds(allLocalIds);
+      }
+    } else {
+      const allCloudIds = historyItems.map((c) => c.id);
+      if (selectedIds.length === allCloudIds.length) {
+        setSelectedIds([]);
+      } else {
+        setSelectedIds(allCloudIds);
+      }
+    }
+  };
+
+  // Delete single conversation from BOTH local and cloud
+  const handleDeleteSingle = async (id: string) => {
+    // 1. Delete from local storage
+    deleteStoredConversation(id);
+    const updatedLocal = getStoredConversations();
+    setLocalConversations(updatedLocal);
+
+    // If active conversation was deleted, clear active state
+    if (getActiveConversationId() === id) {
+      clearActiveConversationSession();
+    }
+
+    // 2. If user is signed in, also delete from Cloudflare D1
+    if (user) {
+      try {
+        const token = await getIdToken();
+        if (token) {
+          await fetch(`/api/user/history?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setHistoryItems((prev) => prev.filter((item) => item.id !== id));
+        }
+      } catch (err) {
+        console.warn('Failed to delete from D1:', err);
+      }
+    }
+
+    setPrivacyMessage(t('আলোচনাটি স্থানীয় ও ক্লাউড থেকে স্থায়ীভাবে মুছে ফেলা হয়েছে।', 'Conversation permanently deleted from local device and cloud.'));
+    setTimeout(() => setPrivacyMessage(null), 3000);
+  };
+
+  // Delete all selected conversations from BOTH local and cloud
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    setIsDeleting(true);
+
+    // 1. Delete all selected from local storage
+    for (const id of selectedIds) {
+      deleteStoredConversation(id);
+      if (getActiveConversationId() === id) {
+        clearActiveConversationSession();
+      }
+    }
+    const updatedLocal = getStoredConversations();
+    setLocalConversations(updatedLocal);
+
+    // 2. If user is signed in, delete from Cloudflare D1
+    if (user) {
+      try {
+        const token = await getIdToken();
+        if (token) {
+          for (const id of selectedIds) {
+            await fetch(`/api/user/history?id=${encodeURIComponent(id)}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` },
+            }).catch(() => {});
+          }
+          setHistoryItems((prev) => prev.filter((item) => !selectedIds.includes(item.id)));
+        }
+      } catch (err) {
+        console.warn('Failed to delete batch from D1:', err);
+      }
+    }
+
+    setIsDeleting(false);
+    setSelectedIds([]);
+    setIsSelectMode(false);
+    setPrivacyMessage(t('নির্বাচিত সংবেদনশীল আলোচনা স্থায়ীভাবে মুছে ফেলা হয়েছে।', 'Selected sensitive discussions permanently deleted from local and cloud.'));
+    setTimeout(() => setPrivacyMessage(null), 3500);
+  };
+
+  // Full privacy purge: Wipe all conversations from BOTH local and cloud
+  const handlePurgeAllHistory = async () => {
+    setIsDeleting(true);
+
+    // 1. Clear all local storage
+    clearAllStoredConversations();
+    setLocalConversations([]);
+    clearActiveConversationSession();
+    setChatTurns([]);
+    setInput('');
+    setStatus('ready');
+
+    // 2. If user is signed in, purge entire Cloudflare D1 user history
+    if (user) {
+      try {
+        const token = await getIdToken();
+        if (token) {
+          await fetch('/api/user/history', {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setHistoryItems([]);
+        }
+      } catch (err) {
+        console.warn('Failed to purge D1 history:', err);
+      }
+    }
+
+    setIsDeleting(false);
+    setShowConfirmWipe(false);
+    setSelectedIds([]);
+    setIsSelectMode(false);
+    setPrivacyMessage(t('সকল সংবেদনশীল ইতিহাস ডিভাইস ও ক্লাউড থেকে সম্পূর্ণ মুছে ফেলা হয়েছে।', 'All sensitive history completely wiped from this device and cloud.'));
+    setTimeout(() => setPrivacyMessage(null), 4000);
   };
 
   const exampleChips = [
@@ -686,11 +858,18 @@ function AskContent() {
     }
   }, [chatTurns]);
 
-  // Handle URL query parameters (?prompt=..., ?q=..., ?id=..., ?new=1) and session restoration
+  // Handle URL query parameters (?prompt=..., ?q=..., ?id=..., ?new=1, ?openHistory=1) and session restoration
   useEffect(() => {
     const isNew = searchParams.get('new') === '1';
     const targetId = searchParams.get('id');
     const targetPrompt = searchParams.get('prompt') || searchParams.get('q');
+    const openHist = searchParams.get('openHistory');
+
+    if (openHist === '1' || openHist === 'true') {
+      fetchHistory();
+      window.history.replaceState({}, '', '/ask');
+      return;
+    }
 
     if (isNew) {
       if (hasHandledUrlRef.current === 'new') return;
@@ -804,15 +983,15 @@ function AskContent() {
                     <button
                       type="button"
                       onClick={handleClearCase}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-semibold font-cinzel rounded-xl border border-accent-light/30 bg-accent-light/10 text-accent-light hover:bg-accent-light/20 hover:border-accent-light/60 transition-all active:scale-95 cursor-pointer shadow-2xs"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-semibold font-cinzel rounded-xl border border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-all active:scale-95 cursor-pointer shadow-2xs group"
                       title={t('নতুন কথোপকথন শুরু করুন', 'Start New Conversation')}
                       aria-label={t('নতুন কথোপকথন', 'New Conversation')}
                     >
-                      <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+                      <Plus className="h-3.5 w-3.5 stroke-[2.5] text-zinc-700 group-hover:text-white transition-colors" />
                       <span>{t('নতুন কথোপকথন', 'New Conversation')}</span>
                     </button>
 
-                    <span className="hidden md:inline text-[11px] text-secondary-light/70 font-hind">
+                    <span className="hidden md:inline text-[11px] text-zinc-500 font-hind">
                       {t('Enter চাপলে উত্তর আসবে', 'Press Enter to submit')}
                     </span>
                   </div>
@@ -821,12 +1000,16 @@ function AskContent() {
                     type="button"
                     disabled={status === 'submitted' || status === 'finding_sources' || !input.trim()}
                     onClick={() => handleAsk()}
-                    className="ml-auto h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center bg-accent-light text-white shadow hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed active-press transition-all cursor-pointer shrink-0"
+                    className={`ml-auto h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                      status === 'submitted' || status === 'finding_sources' || !input.trim()
+                        ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
+                        : 'bg-black text-white hover:bg-zinc-800 shadow-md hover:shadow-lg active:scale-95'
+                    }`}
                     title={t('অনুসন্ধান চালান', 'Submit Inquiry')}
                     aria-label={t('অনুসন্ধান চালান', 'Submit Inquiry')}
                   >
                     {status === 'submitted' || status === 'finding_sources' ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
                     ) : (
                       <ArrowUp className="h-4 w-4 stroke-[2.5]" />
                     )}
@@ -952,8 +1135,8 @@ function AskContent() {
                                 disabled={transState?.isLoading}
                                 className={`h-7 inline-flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-hind font-semibold border transition-all active:scale-95 cursor-pointer shadow-2xs ${
                                   transState?.isTranslated
-                                    ? 'border-accent-light bg-accent-light text-white font-bold ring-2 ring-accent-light/25 shadow-xs'
-                                    : 'border-accent-light/40 bg-accent-light/10 text-accent-light hover:bg-accent-light hover:text-white'
+                                    ? 'border-black bg-black text-white font-bold ring-2 ring-black/10 shadow-xs'
+                                    : 'border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-900 hover:text-white hover:border-zinc-900'
                                 }`}
                                 title={
                                   transState?.isTranslated
@@ -963,7 +1146,7 @@ function AskContent() {
                               >
                                 {transState?.isLoading ? (
                                   <>
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-accent-light" />
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-600" />
                                     <span className="text-[11px] whitespace-nowrap">{t('অনুবাদ হচ্ছে...', 'Translating...')}</span>
                                   </>
                                 ) : transState?.isTranslated ? (
@@ -1005,7 +1188,7 @@ function AskContent() {
                             className={`h-7 inline-flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-hind border transition-all active:scale-95 cursor-pointer shadow-2xs ${
                               copiedTurnId === turn.id
                                 ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 font-bold'
-                                : 'border-border-light/80 bg-surface-cardLight text-secondary-light hover:text-primary-light hover:border-accent-light/40'
+                                : 'border-zinc-200 bg-white text-zinc-700 hover:text-black hover:border-zinc-400'
                             }`}
                             title={t('উত্তর কপি করুন', 'Copy response')}
                           >
@@ -1016,7 +1199,7 @@ function AskContent() {
                               </>
                             ) : (
                               <>
-                                <Copy className="h-3.5 w-3.5 text-accent-light" />
+                                <Copy className="h-3.5 w-3.5 text-zinc-600" />
                                 <span className="text-[11px] font-medium whitespace-nowrap">{t('কপি', 'Copy')}</span>
                               </>
                             )}
@@ -1720,17 +1903,17 @@ function AskContent() {
         <div className="fixed bottom-[calc(3.85rem+env(safe-area-inset-bottom,0px))] md:bottom-0 left-0 right-0 z-30 pointer-events-none pb-1 md:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 bg-gradient-to-t from-bg-light/95 via-bg-light/80 to-transparent">
           <div className="max-w-3xl mx-auto px-2.5 sm:px-4 w-full pointer-events-auto">
             {/* Docked Asking Card */}
-            <div className="rounded-2xl sm:rounded-3xl border border-border-light/90 bg-surface-cardLight/95 backdrop-blur-md shadow-xl transition-all focus-within:border-accent-light/80 focus-within:ring-2 focus-within:ring-accent-light/15 p-2 sm:p-2.5">
+            <div className="rounded-2xl sm:rounded-3xl border border-zinc-200/90 bg-white/95 backdrop-blur-md shadow-xl transition-all focus-within:border-zinc-400 focus-within:ring-2 focus-within:ring-black/5 p-2 sm:p-2.5">
               <div className="flex items-end gap-1.5 sm:gap-2">
                 {/* Quick Action: Start New Case */}
                 <button
                   type="button"
                   onClick={handleClearCase}
-                  className="h-9 w-9 rounded-xl flex items-center justify-center text-secondary-light hover:text-accent-light hover:bg-bg-light border border-border-light/70 transition-colors shrink-0 active:scale-95 cursor-pointer"
+                  className="h-9 w-9 rounded-full flex items-center justify-center bg-zinc-100 hover:bg-zinc-200 text-zinc-700 hover:text-black border border-zinc-200/80 transition-all shrink-0 active:scale-95 cursor-pointer shadow-2xs group"
                   title={t('নতুন আলোচনা শুরু করুন', 'Start New Case')}
                   aria-label="New case"
                 >
-                  <Plus className="h-4 w-4 text-accent-light" />
+                  <Plus className="h-4 w-4 stroke-[2.2] group-hover:rotate-90 transition-transform duration-200" />
                 </button>
 
                 {/* Auto-expanding Input Area */}
@@ -1762,12 +1945,16 @@ function AskContent() {
                   type="button"
                   disabled={status === 'submitted' || status === 'finding_sources' || !input.trim()}
                   onClick={() => handleAsk()}
-                  className="h-9 w-9 sm:h-9.5 sm:w-9.5 rounded-xl flex items-center justify-center bg-accent-light text-white shadow-sm hover:opacity-95 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all shrink-0 cursor-pointer"
+                  className={`h-9 w-9 sm:h-9.5 sm:w-9.5 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                    status === 'submitted' || status === 'finding_sources' || !input.trim()
+                      ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
+                      : 'bg-black text-white hover:bg-zinc-800 shadow-md hover:shadow-lg active:scale-95 cursor-pointer'
+                  }`}
                   title={t('পাঠান', 'Send')}
                   aria-label="Send message"
                 >
                   {status === 'submitted' || status === 'finding_sources' ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
                   ) : (
                     <ArrowUp className="h-4 w-4 stroke-[2.5]" />
                   )}
@@ -1775,14 +1962,14 @@ function AskContent() {
               </div>
 
               {/* Sleek Context & Quota Row */}
-              <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-border-light/40 px-1 text-[11px] text-secondary-light">
+              <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-zinc-200/60 px-1 text-[11px] text-zinc-500">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={fetchHistory}
-                    className="inline-flex items-center gap-1 font-hind text-secondary-light hover:text-accent-light transition-colors cursor-pointer text-[11px]"
+                    className="inline-flex items-center gap-1 font-hind text-zinc-500 hover:text-black transition-colors cursor-pointer text-[11px] group"
                   >
-                    <History className="h-3 w-3 text-accent-light" />
+                    <History className="h-3 w-3 text-zinc-500 group-hover:text-black" />
                     <span>{t('ইতিহাস', 'History')}</span>
                   </button>
                   <span className="text-border-light/60">•</span>
@@ -1838,97 +2025,474 @@ function AskContent() {
       {/* Desktop footer shown only before conversation starts */}
       {!isChatMode && <div className="hidden md:block"><Footer /></div>}
 
-      {/* Cloudflare D1 User History Drawer */}
+      {/* Question & Conversation History Drawer (Local Storage & Cloud Sync with Privacy Deletion) */}
       {historyOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/50 backdrop-blur-xs transition-opacity"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setHistoryOpen(false);
+            if (e.target === e.currentTarget) {
+              setHistoryOpen(false);
+              setIsSelectMode(false);
+              setSelectedIds([]);
+            }
           }}
         >
-          <div className="h-full w-full max-w-md bg-surface-light border-l border-border-light shadow-2xl p-6 flex flex-col justify-between animate-in slide-in-from-right duration-200 overflow-hidden">
-            <div>
-              <div className="flex items-center justify-between border-b border-border-light pb-4">
-                <div className="flex items-center gap-2">
-                  <History className="h-5 w-5 text-accent-light" />
-                  <h3 className="font-cinzel text-sm font-bold tracking-wider text-primary-light">
-                    {t('পূর্ববর্তী আইনি অনুসন্ধান', 'QUESTION HISTORY')}
-                  </h3>
+          <div className="h-full w-full max-w-md bg-surface-light border-l border-border-light shadow-2xl p-5 sm:p-6 flex flex-col justify-between animate-in slide-in-from-right duration-200 overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0">
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between border-b border-border-light pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-900 border border-zinc-200">
+                    <History className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-cinzel text-xs font-bold tracking-wider text-primary-light">
+                      {t('কথোপকথনের ইতিহাস', 'CONVERSATION HISTORY')}
+                    </h3>
+                    <p className="text-[10px] text-secondary-light font-hind">
+                      {t('স্থানীয় ও ক্লাউড সংরক্ষিত সংবেদনশীল তথ্য নিয়ন্ত্রণ', 'Manage locally & cloud saved inquiries')}
+                    </p>
+                  </div>
                 </div>
                 <button
-                  onClick={() => setHistoryOpen(false)}
-                  className="rounded-lg p-1 text-secondary-light hover:bg-bg-light transition-colors cursor-pointer"
+                  type="button"
+                  onClick={() => {
+                    setHistoryOpen(false);
+                    setIsSelectMode(false);
+                    setSelectedIds([]);
+                  }}
+                  className="rounded-lg p-1.5 text-secondary-light hover:text-black hover:bg-zinc-200/60 transition-colors cursor-pointer"
+                  aria-label="Close History"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <p className="text-[11px] text-secondary-light mt-2 font-hind">
-                {t(
-                  'ক্লাউডফ্লেয়ার ডি১ ডাটাবেসে সংরক্ষিত আপনার সাম্প্রতিক প্রশ্ন ও এআই সমাধান',
-                  'Your recent queries and legal solutions preserved in Cloudflare D1'
-                )}
-              </p>
+              {/* Privacy Confirmation Alert Banner */}
+              {privacyMessage && (
+                <div className="mt-3 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs flex items-center gap-2 animate-in fade-in duration-200">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span className="font-medium font-hind text-[11px] leading-snug">{privacyMessage}</span>
+                </div>
+              )}
 
-              <div className="mt-4 space-y-3 max-h-[calc(100vh-160px)] overflow-y-auto pr-1">
-                {historyLoading ? (
-                  <div className="py-12 flex flex-col items-center justify-center text-secondary-light text-xs gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin text-accent-light" />
-                    <span>{t('তথ্য লোড হচ্ছে...', 'Loading your history...')}</span>
-                  </div>
-                ) : historyItems.length === 0 ? (
-                  <div className="py-12 text-center text-xs text-secondary-light font-hind">
-                    {t('এখনও কোনো প্রশ্ন রেকর্ড পাওয়া যায়নি।', 'No recorded questions yet.')}
+              {/* Tab Selector: Locally Saved vs Cloud Sync */}
+              <div className="flex items-center gap-1 p-1 mt-3 rounded-xl bg-bg-light border border-border-light/80 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHistoryTab('local');
+                    setSelectedIds([]);
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg text-xs font-semibold font-hind transition-all cursor-pointer ${
+                    historyTab === 'local'
+                      ? 'bg-white text-primary-light shadow-2xs border border-border-light/60 font-bold'
+                      : 'text-secondary-light hover:text-primary-light'
+                  }`}
+                >
+                  <Laptop className="h-3.5 w-3.5 text-zinc-700" />
+                  <span>{t('এই ডিভাইসে সংরক্ষিত', 'Locally Saved')}</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-zinc-100 text-zinc-800 font-bold">
+                    {localConversations.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHistoryTab('cloud');
+                    setSelectedIds([]);
+                    if (!user) {
+                      openAuthModal('login', t('ক্লাউড ইতিহাস দেখতে সাইন ইন করুন।', 'Please sign in to access Cloudflare D1 history.'));
+                    }
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg text-xs font-semibold font-hind transition-all cursor-pointer ${
+                    historyTab === 'cloud'
+                      ? 'bg-white text-primary-light shadow-2xs border border-border-light/60 font-bold'
+                      : 'text-secondary-light hover:text-primary-light'
+                  }`}
+                >
+                  <Cloud className="h-3.5 w-3.5 text-zinc-700" />
+                  <span>{t('ক্লাউড সিঙ্ক', 'Cloud Sync')}</span>
+                  {historyItems.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-zinc-100 text-zinc-800 font-bold">
+                      {historyItems.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Privacy Management Action Bar (Selection & Delete) */}
+              <div className="flex items-center justify-between pt-2.5 pb-1 text-xs">
+                {isSelectMode ? (
+                  <div className="w-full flex items-center justify-between gap-2 p-1.5 rounded-xl bg-zinc-100/80 border border-zinc-200">
+                    <button
+                      type="button"
+                      onClick={handleSelectAll}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-zinc-800 hover:text-black cursor-pointer px-2 py-1 rounded"
+                    >
+                      {selectedIds.length > 0 &&
+                      selectedIds.length ===
+                        (historyTab === 'local' ? localConversations.length : historyItems.length) ? (
+                        <CheckSquare className="h-4 w-4 text-black" />
+                      ) : (
+                        <Square className="h-4 w-4 text-zinc-500" />
+                      )}
+                      <span>
+                        {selectedIds.length > 0 &&
+                        selectedIds.length ===
+                          (historyTab === 'local' ? localConversations.length : historyItems.length)
+                          ? t('সব আনসিলেক্ট', 'Deselect All')
+                          : t('সব সিলেক্ট', 'Select All')}
+                      </span>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={selectedIds.length === 0 || isDeleting}
+                        onClick={handleDeleteSelected}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-xs cursor-pointer"
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        <span>{t(`মুছুন (${selectedIds.length})`, `Delete (${selectedIds.length})`)}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsSelectMode(false);
+                          setSelectedIds([]);
+                        }}
+                        className="px-2 py-1 text-xs text-secondary-light hover:text-black cursor-pointer"
+                      >
+                        {t('বাতিল', 'Cancel')}
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  historyItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border border-border-light bg-bg-light/60 p-3.5 space-y-2 hover:border-accent-light/50 transition-all cursor-pointer"
-                      onClick={() => {
-                        setHistoryOpen(false);
-                        const cached = findStoredConversation(item.id, item.question);
-                        if (cached && cached.turns && cached.turns.length > 0) {
-                          setChatTurns(cached.turns);
-                          setActiveConversationId(cached.id);
-                          setStatus('ready');
-                          return;
-                        }
-                        handleAsk(item.question);
-                      }}
+                  <div className="w-full flex items-center justify-between px-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsSelectMode(true)}
+                      disabled={
+                        (historyTab === 'local' ? localConversations.length : historyItems.length) === 0
+                      }
+                      className="inline-flex items-center gap-1.5 text-secondary-light hover:text-black font-hind text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      <div className="flex items-center justify-between text-[10px] text-secondary-light">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-accent-light" />
-                          {new Date(item.createdAt).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                        <span className="uppercase text-[9px] px-1.5 py-0.5 rounded bg-accent-light/10 text-accent-light font-cinzel font-semibold">
-                          {item.engineProvenance}
-                        </span>
+                      <CheckSquare className="h-3.5 w-3.5 text-zinc-600" />
+                      <span>{t('সিলেক্ট করে মুছুন', 'Select & Delete')}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmWipe(true)}
+                      disabled={localConversations.length === 0 && historyItems.length === 0}
+                      className="inline-flex items-center gap-1 text-red-600/80 hover:text-red-700 font-hind text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <ShieldAlert className="h-3.5 w-3.5" />
+                      <span>{t('সকল তথ্য মুছুন', 'Purge All')}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Conversation List / Content Area */}
+              <div className="mt-2 flex-1 overflow-y-auto pr-1 space-y-2.5 min-h-0">
+                {historyTab === 'local' ? (
+                  localConversations.length === 0 ? (
+                    <div className="py-14 flex flex-col items-center justify-center text-center px-4">
+                      <div className="h-12 w-12 rounded-full bg-zinc-100 flex items-center justify-center mb-3 text-zinc-400">
+                        <MessageSquare className="h-5 w-5" />
                       </div>
-                      <p className="text-xs font-semibold text-primary-light line-clamp-2">
-                        {item.question}
+                      <p className="text-xs font-bold text-primary-light mb-1">
+                        {t('কোনো সংরক্ষিত আলোচনা নেই', 'No Saved Conversations')}
                       </p>
-                      {item.responseSnippet && (
-                        <p className="text-[11px] text-secondary-light line-clamp-2 italic font-hind">
-                          &ldquo;{item.responseSnippet}&rdquo;
-                        </p>
-                      )}
+                      <p className="text-[11px] text-secondary-light max-w-xs leading-relaxed font-hind">
+                        {t(
+                          'আপনার সকল আইনি অনুসন্ধান ও ফলো-আপ এই ব্রাউজারে সম্পূর্ণ ব্যক্তিগতভাবে সংরক্ষিত থাকে।',
+                          'Your inquiries and follow-ups are automatically saved privately in this browser.'
+                        )}
+                      </p>
                     </div>
-                  ))
+                  ) : (
+                    localConversations.map((conv) => {
+                      const isActive = getActiveConversationId() === conv.id;
+                      const isSelected = selectedIds.includes(conv.id);
+                      const firstUserTurn = conv.turns.find((t) => t.role === 'user');
+                      const lastAssistantTurn = [...conv.turns].reverse().find((t) => t.role === 'assistant');
+                      const title = conv.title || firstUserTurn?.content || 'Legal Inquiry';
+
+                      return (
+                        <div
+                          key={conv.id}
+                          onClick={() => {
+                            if (isSelectMode) {
+                              handleToggleSelectId(conv.id);
+                              return;
+                            }
+                            setHistoryOpen(false);
+                            setChatTurns(conv.turns);
+                            setActiveConversationId(conv.id);
+                            setStatus('ready');
+                          }}
+                          className={`group relative rounded-xl border p-3 space-y-2 transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-red-500 bg-red-50/20 ring-1 ring-red-500/20'
+                              : isActive
+                              ? 'border-zinc-900 bg-white ring-1 ring-zinc-900/10 shadow-xs'
+                              : 'border-border-light bg-surface-cardLight hover:border-zinc-400 hover:shadow-2xs'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between text-[11px]">
+                            <div className="flex items-center gap-2">
+                              {isSelectMode && (
+                                <div
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleSelectId(conv.id);
+                                  }}
+                                  className="cursor-pointer"
+                                >
+                                  {isSelected ? (
+                                    <CheckSquare className="h-4 w-4 text-red-600" />
+                                  ) : (
+                                    <Square className="h-4 w-4 text-zinc-400 hover:text-black" />
+                                  )}
+                                </div>
+                              )}
+                              <div className="flex items-center gap-1.5 text-secondary-light font-hind">
+                                <Clock className="h-3 w-3 text-zinc-500" />
+                                <span>
+                                  {new Date(conv.updatedAt || conv.createdAt).toLocaleDateString(
+                                    lang === 'bn' ? 'bn-BD' : 'en-US',
+                                    {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    }
+                                  )}
+                                </span>
+                                <span>•</span>
+                                <span className="font-mono text-[10px]">
+                                  {conv.turns.length} {t('বার্তা', 'msgs')}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              {isActive && !isSelectMode && (
+                                <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.2 text-[9px] font-bold">
+                                  {t('বর্তমান', 'Current')}
+                                </span>
+                              )}
+                              {!isSelectMode && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSingle(conv.id)}
+                                  className="p-1 rounded text-secondary-light/60 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                  title={t('স্থানীয় ও ক্লাউড উভয় স্থান থেকে মুছুন', 'Delete from both local and cloud')}
+                                  aria-label="Delete conversation"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          <p className="text-xs font-semibold text-primary-light line-clamp-2">
+                            {title}
+                          </p>
+
+                          {lastAssistantTurn && (
+                            <p className="text-[11px] text-secondary-light line-clamp-2 font-hind italic">
+                              &ldquo;
+                              {lastAssistantTurn.result?.problemSummary?.understanding ||
+                                lastAssistantTurn.result?.followUpResponse?.directAnswer ||
+                                lastAssistantTurn.result?.plainLanguageExplanation?.meaning ||
+                                lastAssistantTurn.content}
+                              &rdquo;
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })
+                  )
+                ) : (
+                  /* Cloud Sync Items */
+                  historyLoading ? (
+                    <div className="py-12 flex flex-col items-center justify-center text-secondary-light text-xs gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-accent-light" />
+                      <span>{t('তথ্য লোড হচ্ছে...', 'Loading cloud history...')}</span>
+                    </div>
+                  ) : historyItems.length === 0 ? (
+                    <div className="py-12 text-center text-xs text-secondary-light font-hind">
+                      {t('ক্লাউডে কোনো সংরক্ষিত প্রশ্ন পাওয়া যায়নি।', 'No recorded cloud queries found.')}
+                    </div>
+                  ) : (
+                    historyItems.map((item) => {
+                      const isSelected = selectedIds.includes(item.id);
+
+                      return (
+                        <div
+                          key={item.id}
+                          className={`rounded-xl border p-3 space-y-2 transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-red-500 bg-red-50/20 ring-1 ring-red-500/20'
+                              : 'border-border-light bg-bg-light/60 hover:border-zinc-400'
+                          }`}
+                          onClick={() => {
+                            if (isSelectMode) {
+                              handleToggleSelectId(item.id);
+                              return;
+                            }
+                            setHistoryOpen(false);
+                            const cached = findStoredConversation(item.id, item.question);
+                            if (cached && cached.turns && cached.turns.length > 0) {
+                              setChatTurns(cached.turns);
+                              setActiveConversationId(cached.id);
+                              setStatus('ready');
+                              return;
+                            }
+                            handleAsk(item.question);
+                          }}
+                        >
+                          <div className="flex items-center justify-between text-[10px] text-secondary-light">
+                            <div className="flex items-center gap-2">
+                              {isSelectMode && (
+                                <div
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleSelectId(item.id);
+                                  }}
+                                  className="cursor-pointer"
+                                >
+                                  {isSelected ? (
+                                    <CheckSquare className="h-4 w-4 text-red-600" />
+                                  ) : (
+                                    <Square className="h-4 w-4 text-zinc-400 hover:text-black" />
+                                  )}
+                                </div>
+                              )}
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3 text-accent-light" />
+                                {new Date(item.createdAt).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <span className="uppercase text-[9px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-800 font-cinzel font-semibold">
+                                {item.engineProvenance}
+                              </span>
+                              {!isSelectMode && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSingle(item.id)}
+                                  className="p-1 rounded text-secondary-light/60 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                  title={t('ক্লাউড ও লোকাল থেকে মুছুন', 'Delete from cloud & local')}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-xs font-semibold text-primary-light line-clamp-2">
+                            {item.question}
+                          </p>
+                        </div>
+                      );
+                    })
+                  )
                 )}
               </div>
             </div>
 
-            <div className="pt-3 border-t border-border-light text-center">
-              <span className="text-[11px] text-secondary-light">
-                {t('যেকোনো প্রশ্নে ক্লিক করে সরাসরি প্রশ্ন চালু করুন', 'Click any question to open and run inquiry')}
+            {/* Bottom Actions */}
+            <div className="pt-3 border-t border-border-light flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setHistoryOpen(false);
+                  setIsSelectMode(false);
+                  setSelectedIds([]);
+                  handleClearCase();
+                }}
+                className="inline-flex items-center gap-1.5 text-primary-light hover:text-black font-semibold font-hind cursor-pointer"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>{t('নতুন আলোচনা শুরু করুন', 'Start New Conversation')}</span>
+              </button>
+
+              <span className="text-[10px] text-secondary-light/80 font-mono">
+                {localConversations.length} {t('টি সংরক্ষিত', 'saved locally')}
               </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Complete Privacy Wipe */}
+      {showConfirmWipe && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isDeleting) setShowConfirmWipe(false);
+          }}
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 border border-zinc-200 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-primary-light">
+                  {t('সকল সংবেদনশীল তথ্য মুছবেন?', 'Wipe All Sensitive Data?')}
+                </h4>
+                <p className="text-[10px] text-secondary-light font-hind">
+                  {t('ডিভাইস ও ক্লাউড উভয় স্থান থেকে স্থায়ীভাবে মুছে যাবে।', 'Permanently purges from both local device and cloud.')}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-secondary-light/90 leading-relaxed font-hind bg-zinc-50 p-3 rounded-xl border border-zinc-200/60">
+              {t(
+                'আপনার পূর্ববর্তী সকল আইনি প্রশ্ন, খসড়া এবং চ্যাট হিস্ট্রি এই ব্রাউজার ও ক্লাউড অ্যাকাউন্ট থেকে সম্পূর্ণভাবে মুছে ফেলা হবে। এই সিদ্ধান্ত অপরিবর্তনযোগ্য।',
+                'All your legal questions, generated drafts, and conversation threads will be permanently wiped from both local storage and cloud database. This cannot be undone.'
+              )}
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setShowConfirmWipe(false)}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-zinc-700 hover:bg-zinc-100 transition-colors cursor-pointer"
+              >
+                {t('বাতিল', 'Cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handlePurgeAllHistory}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                <span>{t('হ্যাঁ, সম্পূর্ণ মুছুন', 'Yes, Wipe Everything')}</span>
+              </button>
             </div>
           </div>
         </div>
