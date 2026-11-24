@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "answerId": "01JBT000000000000000000005",
+  "caseId": "case_syn_004",
+  "turnId": "turn_syn_001",
+  "revision": 1,
+  "mode": "demo_fixture",
+  "engineProvenance": "demo_fixture",
+  "outcome": "unsupported_scope",
+  "intent": "new_issue",
+  "status": "unsupported",
+  "questions": [],
+  "userFacts": [
+    {
+      "fieldId": "issue.category",
+      "value": "foreign_jurisdiction",
+      "status": "user_stated",
+      "provenance": "synthetic_fixture"
+    }
+  ],
+  "checklist": [],
+  "explanation": [
+    {
+      "text": "[SYNTHETIC SAMPLE: not legal content] এই ঘটনাটি বাংলাদেশের আইনি সীমার বাইরে সংঘটিত হয়েছে। মাই লজ কেবল বাংলাদেশের অভ্যন্তরীণ আইনের তথ্য প্রদানে সক্ষম।",
+      "sourceIds": []
+    }
+  ],
+  "limitations": [
+    "বিদেশি এখতিয়ার বা আন্তর্জাতিক বিরোধ মাই লজ-এর বর্তমান আওতাভুক্ত নয়।"
+  ],
+  "sourcePackVersion": "bd-pilot-2026-10-27.1",
+  "allowedDraftOptions": [],
+  "userQuota": {
+    "dailyLimit": 30,
+    "usedToday": 1,
+    "remaining": 29,
+    "canQuery": true
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "id": "draft_syn_gd_001",
+  "templateId": "gd-application",
+  "templateVersion": "1.0",
+  "type": "gd",
+  "facts": {
+    "fields": [
+      { "fieldId": "name", "value": "[SYNTHETIC SAMPLE] আবেদনকারী নাম" },
+      { "fieldId": "contact", "value": "01700000000" },
+      { "fieldId": "address", "value": "মিরপুর, ঢাকা" },
+      { "fieldId": "recipient", "value": "ভারপ্রাপ্ত কর্মকর্তা (OC), মিরপুর মডেল থানা, ঢাকা" },
+      { "fieldId": "place", "value": "মিরপুর-১০ গোলচত্বর" },
+      { "fieldId": "date", "value": "২০২৬-১০-৩১, সকাল ১০:০০" },
+      { "fieldId": "chronology", "value": "[SYNTHETIC SAMPLE] উল্লেখিত স্থান ও সময়ে আমার জাতীয় পরিচয়পত্র হারিয়ে গেছে।" },
+      { "fieldId": "assistance", "value": "সাধারণ ডায়েরিভুক্ত করার অনুরোধ জানাচ্ছি।" },
+      { "fieldId": "applicationDate", "value": "২০২৬-১১-০২" }
+    ]
+  },
+  "recipient": "ভারপ্রাপ্ত কর্মকর্তা (OC), মিরপুর মডেল থানা, ঢাকা",
+  "paragraphs": [
+    "বরাবর\nভারপ্রাপ্ত কর্মকর্তা (OC), মিরপুর মডেল থানা, ঢাকা",
+    "বিষয়: সাধারণ ডায়েরি (GD) করার জন্য আবেদন",
+    "মহোদয়,",
+    "আমি [SYNTHETIC SAMPLE] আবেদনকারী নাম। ঠিকানা: মিরপুর, ঢাকা। যোগাযোগ: 01700000000।",
+    "ঘটনা / কর্মস্থলের স্থান: মিরপুর-১০ গোলচত্বর\nঘটনার তারিখ ও সময়: ২০২৬-১০-৩১, সকাল ১০:০০",
+    "[SYNTHETIC SAMPLE] উল্লেখিত স্থান ও সময়ে আমার জাতীয় পরিচয়পত্র হারিয়ে গেছে।",
+    "অনুরোধ: সাধারণ ডায়েরিভুক্ত করার অনুরোধ জানাচ্ছি।",
+    "সংযুক্তি: উল্লেখ করা হয়নি",
+    "আবেদনের তারিখ: ২০২৬-১১-০২",
+    "\nস্বাক্ষর: ____________________\n[SYNTHETIC SAMPLE] আবেদনকারী নাম"
+  ],
+  "unresolvedPlaceholders": [],
+  "reviewStatus": "reviewed",
+  "sourcePackVersion": "bd-pilot-2026-10-27.1",
+  "exportStatus": "never_exported"
+}

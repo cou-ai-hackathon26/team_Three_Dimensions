@@ -204,8 +204,8 @@ export default function ApplicationPage() {
                 <h2 className="font-anek text-xl sm:text-2xl font-bold text-primary-light">
                   {t('মাই লজ অ্যান্ড্রয়েড অ্যাপ', 'MyLaws for Android')}
                 </h2>
-                <span className="rounded-full bg-accent-light/15 border border-accent-light/30 px-2.5 py-0.5 text-[11px] font-bold font-mono text-accent-light uppercase">
-                  v1.0 Beta
+                <span className="rounded-full bg-emerald-500/15 border border-emerald-500/35 px-2.5 py-0.5 text-[11px] font-bold font-mono text-emerald-800 dark:text-emerald-400 uppercase tracking-wide">
+                  v1.0 Production Release
                 </span>
               </div>
             </div>
@@ -213,26 +213,26 @@ export default function ApplicationPage() {
             {/* Crisp 1-sentence transparency note */}
             <p className="font-hind text-xs sm:text-sm text-secondary-light leading-relaxed max-w-lg mx-auto relative z-10">
               {lang === 'bn'
-                ? 'অ্যাপটির পূর্ণাঙ্গ রিলিজের উন্নয়ন চলমান। তবে প্রাথমিক এই বেটা সংস্করণটি ইতিমধ্যেই সম্পূর্ণ রানএবল এবং অফলাইনে ব্যবহারের জন্য প্রস্তুত।'
-                : 'Full production release is in active development. This early v1.0 beta is completely runnable and ready for offline testing today.'}
+                ? 'অফিশিয়াল প্রোডাকশন রিলিজ প্রস্তুত! ১,০৪৬টি অফিসিয়াল ধারা, ১০টি প্রমিত আইনি আবেদন ও অফলাইন এআই সহ ইন্টারনেট ছাড়াই ব্যবহার করুন।'
+                : 'Official production release ready! Access 1,046 verified statutory provisions, 10 standardized legal draft templates, and offline AI with zero internet required.'}
             </p>
 
             {/* Main Action Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-1 relative z-10">
               <a
-                href="/downloads/mylaws-v1-preview.apk"
-                download="mylaws-v1-beta.apk"
+                href="/downloads/MyLaws-Production-Release.apk"
+                download="MyLaws-Production-Release.apk"
                 className="glassy-action-btn bracket-btn group inline-flex items-center justify-center gap-2.5 px-8 py-3.5 sm:py-4 rounded-xl text-xs sm:text-sm font-bold tracking-wider text-center shadow-lg hover:shadow-accent-light/20 transition-all cursor-pointer whitespace-nowrap w-full sm:w-auto"
-                title={t('অ্যান্ড্রয়েড এপিকে ডাউনলোড করুন (~৯.৮ MB)', 'Download Android APK (~9.8 MB)')}
+                title={t('অ্যান্ড্রয়েড প্রোডাকশন এপিকে ডাউনলোড করুন (~৭৪ MB)', 'Download Android Production APK (~74 MB)')}
               >
                 <Download className="h-4 sm:h-5 w-4 sm:w-5 text-accent-light group-hover:translate-y-0.5 transition-transform shrink-0" />
                 <span>
                   {lang === 'bn'
-                    ? 'অ্যান্ড্রয়েড এপিকে ডাউনলোড করুন'
-                    : 'DOWNLOAD ANDROID APK'}
+                    ? 'অ্যান্ড্রয়েড প্রোডাকশন এপিকে ডাউনলোড করুন'
+                    : 'DOWNLOAD PRODUCTION APK'}
                 </span>
                 <span className="text-[11px] font-mono opacity-80 border-l border-white/20 pl-2 ml-1 shrink-0 hidden sm:inline">
-                  ~9.8 MB
+                  ~74 MB
                 </span>
               </a>
 
@@ -289,7 +289,7 @@ export default function ApplicationPage() {
                 <span className="font-bold text-primary-light block">
                   {t('১. ডাউনলোড', '1. Download')}
                 </span>
-                <p>{t('উপরের বাটনে চাপলে ~৯.৮ MB ফাইলটি সরাসরি ডাউনলোড হবে।', 'Tap download above (~9.8 MB file).')}</p>
+                <p>{t('উপরের বাটনে চাপলে ~৭৪ MB প্রোডাকশন এপিকে ফাইলটি সরাসরি ডাউনলোড হবে।', 'Tap download above (~74 MB production APK file).')}</p>
               </div>
               <div className="space-y-1">
                 <span className="font-bold text-primary-light block">
@@ -791,17 +791,18 @@ export default function ApplicationPage() {
                     </div>
                     <p className="text-[11px] text-secondary-light">
                       {t('বিল্ড তারিখ: ', 'Build Date: ')}
-                      {content.experimentalRelease.manifest.releaseDate} · Build #{content.experimentalRelease.manifest.versionCode} · {t('প্যাকেজ সাইজ: ১০.৩ MB', 'Size: 10.3 MB')}
+                      {content.experimentalRelease.manifest.releaseDate} · Build #{content.experimentalRelease.manifest.versionCode} · {t('প্যাকেজ সাইজ: ৭৩.৯ MB (~৭৪ MB)', 'Size: 73.9 MB (~74 MB)')}
                     </p>
                   </div>
 
                   <a
                     href={content.experimentalRelease.manifest.apkUrl || '#'}
+                    download="MyLaws-Production-Release.apk"
                     className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-border-light bg-surface-cardLight hover:bg-bg-light hover:border-accent-light/50 text-secondary-light hover:text-primary-light text-xs font-bold transition-all shadow-xs"
                   >
                     <Download className="h-4 w-4 text-accent-light" />
                     <span>
-                      {t('পরীক্ষামূলক প্রিভিউ ডাউনলোড করুন (~১০.৩ MB)', 'Try experimental preview (~10.3 MB)')}
+                      {t('প্রোডাকশন এপিকে ডাউনলোড করুন (~৭৪ MB)', 'Download Production APK (~74 MB)')}
                     </span>
                   </a>
                 </div>

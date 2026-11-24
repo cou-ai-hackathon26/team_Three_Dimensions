@@ -187,14 +187,14 @@ export function Header() {
           <Link
             href="/download"
             className="glassy-action-btn glassy-delay group flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-cinzel font-bold tracking-wider uppercase transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-95"
-            title={t('অ্যান্ড্রয়েড অফলাইন অ্যাপ্লিকেশন (v১.০ বেটা)', 'Download Android App (v1.0 Beta)')}
+            title={t('অ্যান্ড্রয়েড অফলাইন অ্যাপ্লিকেশন (v১.০ প্রোডাকশন এপিকে)', 'Download Android App (v1.0 Production APK)')}
           >
             <span className="glassy-shimmer-beam" aria-hidden="true" />
             <span className="relative z-10 flex items-center gap-1.5">
               <Smartphone className="h-3.5 w-3.5 text-zinc-800 group-hover:scale-110 transition-transform shrink-0" />
               <span className="text-zinc-900 font-bold">{t('GET APP', 'GET APP')}</span>
               <span className="ml-1 rounded px-1.5 py-0.5 text-[9px] font-bold tracking-tight bg-black text-white shadow-2xs">
-                BETA
+                APK
               </span>
             </span>
           </Link>
@@ -471,7 +471,7 @@ export function Header() {
                     </span>
                   </div>
                   <span className="rounded px-1.5 py-0.5 text-[9px] font-bold tracking-tight bg-accent-light/15 text-accent-light border border-accent-light/30">
-                    v1.0 BETA
+                    v1.0 APK
                   </span>
                 </Link>
               </div>

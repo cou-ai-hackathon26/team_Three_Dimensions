@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mylaws.bd/schemas/source_record.schema.json",
+  "title": "SourceRecord",
+  "type": "object",
+  "required": ["id", "type", "originalText", "title", "provisionPath"],
+  "properties": {
+    "id": { "type": "string" },
+    "type": {
+      "type": "string",
+      "enum": ["illustrative", "authoritative", "needs_verification"]
+    },
+    "originalText": { "type": "string" },
+    "title": { "type": "string" },
+    "provisionPath": { "type": "string" },
+    "officialUrl": { "type": ["string", "null"] },
+    "verifiedDate": { "type": ["string", "null"] },
+    "effectiveDate": { "type": ["string", "null"] },
+    "recordVersion": { "type": "string" },
+    "packVersion": { "type": "string" },
+    "plainExplanation": { "type": ["string", "null"] },
+    "legalStatus": { "type": "string" },
+    "reviewStatus": { "type": "string" },
+    "keywords": { "type": "array", "items": { "type": "string" } },
+    "categories": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

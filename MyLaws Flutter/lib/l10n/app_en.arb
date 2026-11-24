@@ -1,0 +1,133 @@
+{
+  "@@locale": "en",
+  "appName": "MyLaws",
+  "appSubtitle": "Bangladesh Legal Information & Document Preparation",
+  "homeGreeting": "Tell us what happened",
+  "homeSupporting": "Describe the situation in your own words. We'll help you understand the next steps in simple terms.",
+  "composerHint": "Write your legal question or situation here...",
+  "send": "Send",
+  "stop": "Stop",
+  "retry": "Retry",
+  "edit": "Edit",
+  "characterLimit": "{count} / {limit}",
+  "@characterLimit": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "limit": { "type": "int" }
+    }
+  },
+
+  "signIn": "Sign In",
+  "signUp": "Create Account",
+  "signOut": "Sign Out",
+  "continueWithGoogle": "Continue with Google",
+  "continueAsGuest": "Continue without an account",
+  "guestNotice": "Guest mode: Online assistant is disabled. Installed legal sources, local drafts, and offline guidance work completely on your phone.",
+  "email": "Email address",
+  "password": "Password",
+  "forgotPassword": "Forgot password?",
+  "account": "Account",
+
+  "modeOnline": "Online Assistant",
+  "modeOnlineGuided": "Online Guided",
+  "modeOfflineInstalled": "Offline: Law Pack Installed",
+  "modeOfflineUnavailable": "Offline: Install Law Pack",
+  "modeSample": "Sample Mode (Dev)",
+
+  "quotaRemaining": "{remaining} of {limit} questions left today",
+  "@quotaRemaining": {
+    "placeholders": {
+      "remaining": { "type": "int" },
+      "limit": { "type": "int" }
+    }
+  },
+  "quotaExhausted": "Today's online question limit is reached. Installed legal sources and drafts still work.",
+  "quotaUnknown": "Quota: Unknown (Offline/Guest)",
+
+  "sources": "Legal Sources",
+  "sourcesCount": "{count} sources cited",
+  "@sourcesCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "sourceVerified": "In Force",
+  "sourceMachineChecked": "Machine-checked, not reviewed by a lawyer",
+  "viewOriginalLaw": "View original statutory section",
+  "openOfficialLink": "Open official BDLaws portal",
+
+  "checklist": "Action Checklist",
+  "requiredDocuments": "Required Documents",
+  "helpfulEvidence": "Helpful Evidence",
+  "undo": "Undo",
+  "stepRecheck": "Needs recheck after update",
+
+  "drafts": "Drafts",
+  "prepareDraft": "Prepare Draft",
+  "draftNotice": "This is a preparation draft. It has not been filed or submitted to any authority.",
+  "incompleteDraft": "Incomplete Draft · Details Needed",
+  "readyDraft": "Draft Ready for Review & Export",
+  "reviewCheckbox": "I have reviewed all facts, dates, and recipient details.",
+  "copyText": "Copy Text",
+  "savePdf": "Save PDF",
+  "sharePdf": "Share PDF",
+  "print": "Print",
+
+  "downloads": "Downloads & Offline",
+  "legalPack": "Statutory Law Pack",
+  "legalPackDesc": "Official statutory provisions for offline search and citation verification.",
+  "localModel": "Offline AI Model (Optional)",
+  "localModelDesc": "Runs on-device AI for legal guidance. Requires compatible 4GB+ RAM Android device.",
+  "installedVersion": "Installed: {version}",
+  "@installedVersion": {
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
+  "checkForUpdates": "Check for Updates",
+  "removePack": "Remove Pack",
+
+  "settings": "Settings",
+  "appearance": "Appearance",
+  "themeSystem": "System Default",
+  "themeLight": "Light Theme",
+  "themeDark": "Dark Theme",
+  "language": "Language",
+  "largerText": "Larger Text",
+  "wifiOnly": "Download over Wi-Fi only",
+  "autoUpdate": "Auto-update public legal pack",
+  "preferOffline": "Prefer offline processing",
+  "privacy": "Privacy & Data",
+  "cloudProcessing": "Allow cloud AI processing",
+  "cloudHistory": "Sync conversation history to cloud",
+  "hideContentSwitcher": "Hide content in app switcher",
+  "deleteConversations": "Delete local conversations",
+  "deleteDrafts": "Delete local drafts",
+  "deleteAllLocal": "Delete all local data",
+  "deleteCloudHistory": "Delete cloud history",
+  "deleteAccount": "Delete account permanently",
+
+  "about": "About & Disclaimer",
+  "disclaimerText": "MyLaws provides legal information and document preparation assistance. It is NOT a lawyer, NOT a law firm, and NOT a government authority. It never files or submits anything on your behalf.",
+  "licenses": "Open Source Licenses",
+
+  "clarificationNeeded": "Clarification Needed",
+  "clarificationWhy": "Why we ask: {reason}",
+  "@clarificationWhy": {
+    "placeholders": {
+      "reason": { "type": "String" }
+    }
+  },
+  "skip": "Skip",
+  "dontKnow": "I don't know",
+
+  "supersededNotice": "Updated after your correction.",
+  "showPreviousGuidance": "Show previous guidance",
+  "hidePreviousGuidance": "Hide previous guidance",
+
+  "noConnection": "No internet connection. Your message is saved.",
+  "serviceUnavailable": "Online help is currently unavailable. Please try again shortly.",
+  "insufficientSources": "We could not find enough reliable legal sources for this situation, so we will not guess.",
+  "unsupportedScope": "This inquiry falls outside the scope of Bangladesh statutory law.",
+  "emergencyNotice": "Emergency detected. Please contact national emergency services immediately."
+}

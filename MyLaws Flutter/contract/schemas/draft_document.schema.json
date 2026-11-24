@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mylaws.bd/schemas/draft_document.schema.json",
+  "title": "DraftDocument",
+  "type": "object",
+  "required": [
+    "id",
+    "templateId",
+    "templateVersion",
+    "type",
+    "recipient",
+    "paragraphs",
+    "unresolvedPlaceholders",
+    "reviewStatus",
+    "exportStatus"
+  ],
+  "properties": {
+    "id": { "type": "string" },
+    "templateId": { "type": "string" },
+    "templateVersion": { "type": "string" },
+    "type": { "type": "string", "enum": ["gd", "dife", "dncrp"] },
+    "facts": {
+      "type": "object",
+      "properties": {
+        "fields": { "type": "array" }
+      }
+    },
+    "recipient": { "type": "string" },
+    "paragraphs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "unresolvedPlaceholders": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "reviewStatus": {
+      "type": "string",
+      "enum": ["incomplete", "needs_review", "reviewed"]
+    },
+    "sourcePackVersion": { "type": "string" },
+    "exportStatus": {
+      "type": "string",
+      "enum": ["never_exported", "exported", "failed"]
+    }
+  },
+  "additionalProperties": true
+}

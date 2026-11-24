@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mylaws.bd/schemas/quota_response.schema.json",
+  "title": "QuotaResponse",
+  "type": "object",
+  "required": ["dailyLimit", "usedToday", "remaining", "canQuery"],
+  "properties": {
+    "dailyLimit": { "type": "integer" },
+    "usedToday": { "type": "integer" },
+    "remaining": { "type": "integer" },
+    "canQuery": { "type": "boolean" },
+    "resetAt": { "type": "string" },
+    "store": { "type": "string" }
+  },
+  "additionalProperties": true
+}

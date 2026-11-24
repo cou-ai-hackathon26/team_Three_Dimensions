@@ -1,0 +1,133 @@
+{
+  "@@locale": "bn",
+  "appName": "MyLaws",
+  "appSubtitle": "বাংলাদেশের আইনি তথ্য ও খসড়া প্রস্তুতিতে সাহায্যকারী",
+  "homeGreeting": "কী হয়েছে বলুন",
+  "homeSupporting": "আপনার কথায় ঘটনাটা লিখুন। সহজ ভাষায় পরের ধাপ বুঝতে সাহায্য করব।",
+  "composerHint": "আপনার আইনি প্রশ্ন বা সমস্যা এখানে লিখুন...",
+  "send": "পাঠান",
+  "stop": "থামান",
+  "retry": "পুনরায় চেষ্টা",
+  "edit": "সম্পাদনা",
+  "characterLimit": "{count} / {limit}",
+  "@characterLimit": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "limit": { "type": "int" }
+    }
+  },
+
+  "signIn": "সাইন ইন",
+  "signUp": "নতুন অ্যাকাউন্ট তৈরি",
+  "signOut": "সাইন আউট",
+  "continueWithGoogle": "গুগল দিয়ে এগিয়ে যান",
+  "continueAsGuest": "অ্যাকাউন্ট ছাড়াই চালিয়ে যান",
+  "guestNotice": "অতিথি মোড: অনলাইন সহকারী বন্ধ থাকবে। তবে ফোনে ইনস্টল করা আইন ভাণ্ডার, স্থানীয় খসড়া ও অফলাইন গাইড সম্পূর্ণ চলবে।",
+  "email": "ইমেইল ঠিকানা",
+  "password": "পাসওয়ার্ড",
+  "forgotPassword": "পাসওয়ার্ড ভুলে গেছেন?",
+  "account": "অ্যাকাউন্ট",
+
+  "modeOnline": "অনলাইন সহকারী",
+  "modeOnlineGuided": "অনলাইন নির্দেশিকা",
+  "modeOfflineInstalled": "অফলাইন: আইন ভাণ্ডার সক্রিয়",
+  "modeOfflineUnavailable": "অফলাইন: আইন ভাণ্ডার প্রয়োজন",
+  "modeSample": "নমুনা মোড (Dev)",
+
+  "quotaRemaining": "আজ আর {remaining}টি প্রশ্ন বাকি (মোট {limit}টি)",
+  "@quotaRemaining": {
+    "placeholders": {
+      "remaining": { "type": "int" },
+      "limit": { "type": "int" }
+    }
+  },
+  "quotaExhausted": "আজকের অনলাইন প্রশ্নের সীমা শেষ হয়েছে। ইনস্টল করা আইনের তথ্য ও খসড়া আগের মতোই ব্যবহার করতে পারবেন।",
+  "quotaUnknown": "কোটা: অজানা (অফলাইন/অতিথি)",
+
+  "sources": "আইনি উৎসসমূহ",
+  "sourcesCount": "{count}টি ধারা উল্লেখিত",
+  "@sourcesCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "sourceVerified": "কার্যকর আইন",
+  "sourceMachineChecked": "যন্ত্রের মাধ্যমে যাচাইকৃত, আইনজীবীর পর্যালোচনা নয়",
+  "viewOriginalLaw": "মূল আইনের ধারা দেখুন",
+  "openOfficialLink": "সরকারি BDLaws পোর্টালে দেখুন",
+
+  "checklist": "করণীয় পদক্ষেপের তালিকা",
+  "requiredDocuments": "প্রয়োজনীয় কাগজপত্র",
+  "helpfulEvidence": "সহায়ক প্রমাণাদি",
+  "undo": "পূর্বাবস্থায় ফেরান",
+  "stepRecheck": "তথ্য পরিবর্তনের পর পুনরায় যাচাই প্রয়োজন",
+
+  "drafts": "আইনি খসড়া",
+  "prepareDraft": "খসড়া প্রস্তুত করুন",
+  "draftNotice": "এটি শুধু প্রস্তুতির খসড়া। এটি কোনো আদালত বা সরকারি দপ্তরে দাখিল করা হয়নি।",
+  "incompleteDraft": "অসম্পূর্ণ খসড়া · আরো তথ্য প্রয়োজন",
+  "readyDraft": "খসড়া প্রস্তুত · পর্যালোচিত",
+  "reviewCheckbox": "আমি সকল তথ্য, তারিখ ও প্রাপকের নাম সতর্কতার সাথে পড়ে যাচাই করেছি।",
+  "copyText": "লেখা কপি করুন",
+  "savePdf": "পিডিএফ সংরক্ষণ",
+  "sharePdf": "পিডিএফ শেয়ার",
+  "print": "প্রিন্ট করুন",
+
+  "downloads": "ডাউনলোড ও অফলাইন",
+  "legalPack": "আইনি তথ্যের ভাণ্ডার",
+  "legalPackDesc": "ইন্টারনেট ছাড়াই আইনের ধারা দেখতে ও যাচাই করতে অফলাইন আইন প্যাক ডাউনলোড করুন।",
+  "localModel": "অফলাইন এআই মডেল (ঐচ্ছিক)",
+  "localModelDesc": "ইন্টারনেট ছাড়া ফোনে এআই চালাতে ব্যবহার হয়। ৪ জিবি+ র‍্যামের উপযুক্ত অ্যান্ড্রয়েড ফোন প্রয়োজন।",
+  "installedVersion": "ইনস্টল করা সংস্করণ: {version}",
+  "@installedVersion": {
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
+  "checkForUpdates": "আপডেট পরীক্ষা করুন",
+  "removePack": "প্যাক মুছে ফেলুন",
+
+  "settings": "সেটিংস",
+  "appearance": "অ্যাপের রূপ",
+  "themeSystem": "সিস্টেমের মতো",
+  "themeLight": "হালকা (লাইট)",
+  "themeDark": "গাঢ় (ডার্ক)",
+  "language": "ভাষা",
+  "largerText": "বড় আকারের লেখা",
+  "wifiOnly": "শুধু ওয়াইফাই-তে ডাউনলোড করুন",
+  "autoUpdate": "আইন ভাণ্ডার স্বয়ংক্রিয় আপডেট",
+  "preferOffline": "অফলাইনে কাজ অগ্রাধিকার দিন",
+  "privacy": "গোপনীয়তা ও তথ্য",
+  "cloudProcessing": "ক্লাউডে এআই বিশ্লেষণের অনুমতি",
+  "cloudHistory": "কথোপকথন ক্লাউডে সেভ করুন",
+  "hideContentSwitcher": "অ্যাপ সুইচারে তথ্য আড়াল করুন",
+  "deleteConversations": "ফোনে সংরক্ষিত আলাপ মুছুন",
+  "deleteDrafts": "ফোনে সংরক্ষিত খসড়া মুছুন",
+  "deleteAllLocal": "ফোনের সকল স্থানীয় তথ্য মুছুন",
+  "deleteCloudHistory": "ক্লাউডের ইতিহাস মুছুন",
+  "deleteAccount": "অ্যাকাউন্ট স্থায়ীভাবে মুছুন",
+
+  "about": "MyLaws সম্পর্কে ও সতর্কতা",
+  "disclaimerText": "MyLaws সাধারণ মানুষকে আইনি তথ্য বুঝতে ও আবেদনপত্র প্রস্তুত করতে সহায়তা করে। এটি আইনজীবী নয় এবং কোনো সরকারি কর্তৃপক্ষ নয়। এটি আপনার পক্ষে কোনো আবেদন জমা দেয় না।",
+  "licenses": "মুক্ত উৎসের লাইসেন্সসমূহ",
+
+  "clarificationNeeded": "কিছু তথ্য স্পষ্ট জানা প্রয়োজন",
+  "clarificationWhy": "কেন জানতে চাইছি: {reason}",
+  "@clarificationWhy": {
+    "placeholders": {
+      "reason": { "type": "String" }
+    }
+  },
+  "skip": "এড়িয়ে যান",
+  "dontKnow": "জানা নেই",
+
+  "supersededNotice": "আপনার সংশোধনের কারণে এই উত্তর আপডেট হয়েছে।",
+  "showPreviousGuidance": "পূর্ববর্তী দিকনির্দেশনা দেখুন",
+  "hidePreviousGuidance": "পূর্ববর্তী দিকনির্দেশনা লুকান",
+
+  "noConnection": "ইন্টারনেট সংযোগ পাওয়া যাচ্ছে না। আপনার লেখা সংরক্ষিত আছে।",
+  "serviceUnavailable": "এই মুহূর্তে অনলাইন সহায়তা পাওয়া যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।",
+  "insufficientSources": "এই বিষয়ে আমাদের কাছে যথেষ্ট নির্ভরযোগ্য আইনগত তথ্য নেই, তাই অনুমান করে কিছু বলছি না।",
+  "unsupportedScope": "এই বিষয়টি বাংলাদেশের আইনি কাঠামোর আওতাভুক্ত নয়।",
+  "emergencyNotice": "জরুরি পরিস্থিতি শনাক্ত হয়েছে। অবিলম্বে জাতীয় জরুরি সেবা ৯৯৯ নম্বরে যোগাযোগ করুন।"
+}

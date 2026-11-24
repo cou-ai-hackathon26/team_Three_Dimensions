@@ -17,6 +17,7 @@ dist/
 *.pem
 *.key
 *.apk
+!public/downloads/MyLaws-Production-Release.apk
 *.aab
 *.pdf
 public/frames_raw/

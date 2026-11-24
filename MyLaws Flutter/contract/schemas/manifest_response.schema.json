@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mylaws.bd/schemas/manifest_response.schema.json",
+  "title": "ManifestResponse",
+  "type": "object",
+  "required": ["legalPack", "androidRelease"],
+  "properties": {
+    "legalPack": {
+      "type": "object",
+      "required": ["id", "legalVersion", "status", "sizeBytes", "coverage"],
+      "properties": {
+        "id": { "type": "string" },
+        "modelVersion": { "type": ["string", "null"] },
+        "legalVersion": { "type": "string" },
+        "indexVersion": { "type": "string" },
+        "templateVersion": { "type": "string" },
+        "status": { "type": "string" },
+        "compatible": { "type": "boolean" },
+        "coverage": { "type": "array", "items": { "type": "string" } },
+        "sizeBytes": { "type": "integer" },
+        "freeBytesRequired": { "type": "integer" },
+        "completedBytes": { "type": "integer" },
+        "sha256": { "type": "string" },
+        "signature": { "type": "string" }
+      }
+    },
+    "androidRelease": {
+      "type": "object",
+      "required": ["version", "versionCode", "apkUrl", "fileSizeBytes", "sha256Checksum"],
+      "properties": {
+        "version": { "type": "string" },
+        "versionCode": { "type": "integer" },
+        "releaseDate": { "type": "string" },
+        "status": { "type": "string" },
+        "apkUrl": { "type": "string" },
+        "fileSizeBytes": { "type": "integer" },
+        "sha256Checksum": { "type": "string" },
+        "minimumAndroidVersion": { "type": "string" },
+        "recommendedRam": { "type": "string" },
+        "testedDevices": { "type": "array", "items": { "type": "string" } },
+        "changeLog": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "additionalProperties": true
+}

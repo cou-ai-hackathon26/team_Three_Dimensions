@@ -1,0 +1,287 @@
+openapi: 3.1.0
+info:
+  title: MyLaws Shared API
+  version: 1.0.0
+  description: >-
+    Canonical shared API contract for MyLaws Bangladesh legal-information and
+    document-preparation assistant, serving both the website and Flutter mobile app.
+servers:
+  - url: https://mylaws-bd.vercel.app/api/v1
+    description: Production Backend
+  - url: http://localhost:3000/api/v1
+    description: Local Development Backend
+
+paths:
+  /answer:
+    post:
+      summary: Conversational turn / legal inquiry
+      description: Submit a legal narrative, clarification response, or follow-up question.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: X-Request-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: X-Client-Version
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: X-Schema-Version
+          in: header
+          required: false
+          schema:
+            type: string
+            default: "1.0"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnswerRequest'
+      responses:
+        '200':
+          description: Validated legal response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnswerResponse'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required or token expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Daily quota exceeded or rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Quota store or upstream provider unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /status:
+    get:
+      summary: System status and capabilities
+      responses:
+        '200':
+          description: Operational status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+
+  /manifest:
+    get:
+      summary: Pack and mobile app release manifest
+      responses:
+        '200':
+          description: Manifest details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManifestResponse'
+
+  /pack:
+    get:
+      summary: Download offline legal sources pack
+      responses:
+        '200':
+          description: Canonical legal corpus pack
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [manifest, records, offices]
+                properties:
+                  manifest:
+                    type: object
+                  records:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SourceRecord'
+                  offices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OfficeRecord'
+
+  /sources:
+    get:
+      summary: Search or browse legal sources
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matched provisions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  corpusVersion:
+                    type: string
+                  provisions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SourceRecord'
+
+  /sources/{sourceId}:
+    get:
+      summary: Lookup a single statutory provision
+      parameters:
+        - name: sourceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Provision found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  provision:
+                    $ref: '#/components/schemas/SourceRecord'
+        '404':
+          description: Source not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /offices:
+    get:
+      summary: List verified offices
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Offices list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  offices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OfficeRecord'
+
+  /drafts/prepare:
+    post:
+      summary: Prepare legal application/complaint draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftPrepareRequest'
+      responses:
+        '200':
+          description: Draft prepared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DraftDocument'
+
+  /user/quota:
+    get:
+      summary: Get remaining user quota
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Quota details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaResponse'
+
+  /user/history:
+    get:
+      summary: Get cloud conversation history
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User history
+    delete:
+      summary: Scoped deletion of cloud history
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          description: Optional specific query ID to delete
+          schema:
+            type: string
+      responses:
+        '200':
+          description: History deleted successfully
+
+  /user/account:
+    delete:
+      summary: In-app account deletion
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Account deleted successfully
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AnswerRequest:
+      $ref: './schemas/answer_request.schema.json'
+    AnswerResponse:
+      $ref: './schemas/answer_response.schema.json'
+    StatusResponse:
+      $ref: './schemas/status_response.schema.json'
+    ManifestResponse:
+      $ref: './schemas/manifest_response.schema.json'
+    SourceRecord:
+      $ref: './schemas/source_record.schema.json'
+    OfficeRecord:
+      $ref: './schemas/office_record.schema.json'
+    DraftPrepareRequest:
+      $ref: './schemas/draft_prepare_request.schema.json'
+    DraftDocument:
+      $ref: './schemas/draft_document.schema.json'
+    ErrorResponse:
+      $ref: './schemas/error_response.schema.json'
+    QuotaResponse:
+      $ref: './schemas/quota_response.schema.json'

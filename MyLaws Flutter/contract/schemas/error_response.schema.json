@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mylaws.bd/schemas/error_response.schema.json",
+  "title": "ErrorResponse",
+  "type": "object",
+  "required": ["error"],
+  "properties": {
+    "error": { "type": "string" },
+    "message": { "type": "string" },
+    "messageEn": { "type": "string" },
+    "code": { "type": "string" },
+    "requestId": { "type": "string" },
+    "userQuota": {
+      "type": "object",
+      "properties": {
+        "dailyLimit": { "type": "integer" },
+        "usedToday": { "type": "integer" },
+        "remaining": { "type": "integer" },
+        "canQuery": { "type": "boolean" },
+        "resetAt": { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": true
+}

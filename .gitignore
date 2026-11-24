@@ -3,12 +3,12 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# 1. Milestone Isolation: Flutter Mobile Application
-# Excluded from initial website-only publication; to be integrated in future milestone
+# 1. Flutter Mobile Application & Release Binaries
 # ------------------------------------------------------------------------------
-MyLaws Flutter/
 *.apk
 *.aab
+!MyLaws-Production-Release.apk
+!MyLaws Web/public/downloads/MyLaws-Production-Release.apk
 
 # ------------------------------------------------------------------------------
 # 2. Secrets, Credentials & Local Environment Files
@@ -49,12 +49,20 @@ next-env.d.ts
 # 4. Flutter, Dart & Tooling Artifacts
 # ------------------------------------------------------------------------------
 .dart_tool/
+**/.dart_tool/
 .packages
 .pub-cache/
 .pub/
 *.gguf
 *.tmp
 .wrangler/
+**/.wrangler/
+**/android/.gradle/
+android/.gradle/
+**/android/local.properties
+android/local.properties
+**/build/
+build/
 
 # ------------------------------------------------------------------------------
 # 5. IDEs, Editors & Operating System Files
